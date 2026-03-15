@@ -7,6 +7,7 @@ class CreateAccountPage extends StatelessWidget {
    CreateAccountPage({super.key});
    final TextEditingController emailController = TextEditingController();
    final TextEditingController passwordController = TextEditingController();
+    final TextEditingController nameController = TextEditingController();
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -21,10 +22,21 @@ class CreateAccountPage extends StatelessWidget {
             onSubmit: () {
               FirebaseAuthService().createAccount(
                 emailController.text,
-                passwordController.text
+                passwordController.text,
+                nameController.text
               );
+              
             },
             children: [
+  CustomTextField(
+              contentPadding: EdgeInsets.symmetric(horizontal: 10),
+           controller: nameController,
+              label: 'Name',
+              hint: 'Enter Your Name',
+              suffixIcon: const Icon(Icons.email),
+            ),
+            
+
             CustomTextField(
               contentPadding: EdgeInsets.symmetric(horizontal: 10),
            controller: emailController,
