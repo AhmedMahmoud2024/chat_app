@@ -44,14 +44,45 @@ class _ChatScreenState extends State<ChatScreen> {
   'senderId':currentUserId,
   'timestamp':FieldValue.serverTimestamp(),
   });
+   
+   if(_scrollController.hasClients){
+     _scrollController.animateTo(0, duration: Duration(milliseconds: 300), curve: Curves.bounceOut);
+   }
     }catch(e){
-
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(e.toString()))
+    );
     }
   }
 
   @override
   Widget build(BuildContext context) {
   
-    return Scaffold();
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.receiverName)
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('chats').doc(
+          _getChatId()
+        ).collection('messages').orderBy(
+          'timeStamp',descending: true
+        ).snapshots(),
+         builder: (context,snapshot){
+          if(!snapshot.hasData ||snapshot.data!.docs.isEmpty){
+          return Center(child: Text('No messages yet ...'),);
+          } 
+          return ListView.builder(
+            controller: _scrollController,
+            reverse: true,
+            padding: EdgeInsets.all(16),
+            itemCount: snapshot.data?.docs.length,
+            itemBuilder:(context,index){
+               
+            } 
+            );
+         }
+         ),
+    );
   }
 }
