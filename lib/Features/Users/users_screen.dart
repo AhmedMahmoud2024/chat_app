@@ -32,8 +32,8 @@ class UsersScreen extends StatelessWidget {
             itemBuilder:(context,index){
               final userData =snapshot.data?.docs[index].data() as Map<String,dynamic>;
               final receiverId = snapshot.data?.docs[index].id;
-                final userName = userData['name'].toString();
-                final userEmail = userData['email'].toString();
+                final userName = userData['name'];
+                final userEmail = userData['email'];
              return ListTile(
               onTap: () {
                 Navigator.push(context,MaterialPageRoute(builder: (context)=>ChatScreen(
