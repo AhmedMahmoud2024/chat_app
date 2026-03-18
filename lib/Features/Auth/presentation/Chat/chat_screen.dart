@@ -70,7 +70,7 @@ class _ChatScreenState extends State<ChatScreen> {
               stream: FirebaseFirestore.instance.collection('chats').doc(
                 _getChatId()
               ).collection('messages').orderBy(
-                'timeStamp',descending: true
+                'timestamp',descending: true
               ).snapshots(),
                builder: (context,snapshot){
                 if(!snapshot.hasData ||snapshot.data!.docs.isEmpty){
@@ -82,12 +82,12 @@ class _ChatScreenState extends State<ChatScreen> {
                   padding: EdgeInsets.all(16),
                   itemCount: snapshot.data?.docs.length,
                   itemBuilder:(context,index){
-                    final messageData=snapshot.data!.docs[index].data() as Map<String,dynamic>;
+                    final messageData=snapshot.data?.docs[index].data() as Map<String,dynamic>;
                      final isMe= messageData['senderId'] ==currentUserId ;
-                     final timeStamp= messageData['timeStamp'] as Timestamp ;
+                     final timeStamp= messageData['timestamp'] as Timestamp ;
                      //need to install dateformat package
                     final timeString = timeStamp!=null ?DateFormat('HH:mm').format(timeStamp.toDate()) : '';
-                return Align(alignment: isMe? Alignment.centerRight :Alignment.centerLeft,
+             return  Align(alignment: isMe? Alignment.centerRight :Alignment.centerLeft,
                   child: Container(
                     margin: EdgeInsets.only(bottom: 10),
                     padding: EdgeInsets.symmetric(horizontal: 16,vertical: 10),
@@ -103,7 +103,6 @@ class _ChatScreenState extends State<ChatScreen> {
                       color: isMe? Colors.white :Colors.black
                      ),), //meassage content
                      Text(timeString) //uncommet after install package   
-                     
                      
                       ],
                     ),
