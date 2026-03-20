@@ -6,5 +6,7 @@ A Simple Chat app with Firebase .
 1-Authentication :registerations & login Using Firebase
 2-Users Screen
 3-chat Screen 
+## On Working Features:
+4- push notifications 
 
  

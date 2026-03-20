@@ -20,11 +20,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
-@override
-  void initState() {
-    super.initState();
-    FirebaseAuthService().saveDeviceToken();
-  }   
+
    @override
   void dispose() {
     _messageController.dispose();
@@ -139,8 +135,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 Expanded(child: TextField(
                   onSubmitted:(value) {
                     _sendMessage();
-                    FirebaseAuthService().saveDeviceToken();
-                    print(FirebaseAuthService().saveDeviceToken().toString());
+                 //   FirebaseAuthService().saveDeviceToken();
+                //    print(FirebaseAuthService().saveDeviceToken().toString());
                   },
                 controller: _messageController,
                 decoration: InputDecoration(

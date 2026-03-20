@@ -1,5 +1,6 @@
 
 
+import 'package:chat_app/Core/Network/push_notifications_service.dart';
 import 'package:chat_app/Features/Auth/presentation/register/create_account_page.dart';
 import 'package:chat_app/Features/Users/users_screen.dart';
 import 'package:chat_app/firebase_options.dart';
@@ -13,6 +14,8 @@ void main() async{
   await  Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  PushNotificationsService.init();
+  /*
   FirebaseMessaging messaging =FirebaseMessaging.instance;
   await messaging.requestPermission();
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
@@ -22,6 +25,7 @@ void main() async{
     // Show a local notification using flutter_local_notifications
   }
 });
+*/
   runApp(const MyApp());
 }
 
