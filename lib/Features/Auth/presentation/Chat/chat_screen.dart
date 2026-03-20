@@ -1,3 +1,5 @@
+
+import 'package:chat_app/Core/Network/firebase_auth_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -17,13 +19,20 @@ class _ChatScreenState extends State<ChatScreen> {
     final  _scrollController = ScrollController();
 
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-   
+
+@override
+  void initState() {
+    super.initState();
+    FirebaseAuthService().saveDeviceToken();
+  }   
    @override
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
+
+
   String _getChatId(){
     final ids =[widget.receiverId,currentUserId];
     ids.sort();
@@ -128,7 +137,11 @@ class _ChatScreenState extends State<ChatScreen> {
             child: SafeArea(child: Row(
               children: [
                 Expanded(child: TextField(
-                  onSubmitted:(value) => _sendMessage(),
+                  onSubmitted:(value) {
+                    _sendMessage();
+                    FirebaseAuthService().saveDeviceToken();
+                    print(FirebaseAuthService().saveDeviceToken().toString());
+                  },
                 controller: _messageController,
                 decoration: InputDecoration(
                   border: OutlineInputBorder(),

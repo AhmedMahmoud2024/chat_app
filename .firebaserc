@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "chatapp": "chatapp-ceb33",
+    "default": "chatapp-ceb33"
+  },
+  "targets": {},
+  "etags": {}
+}

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart' show FirebaseMessaging;
   class FirebaseAuthService {
  
   final FirebaseAuth _auth = FirebaseAuth.instance ;
@@ -37,4 +38,16 @@ import 'package:firebase_auth/firebase_auth.dart';
    rethrow;
    }
              }
+/*
+             Future<void> saveDeviceToken() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user != null) {
+    String? token = await FirebaseMessaging.instance.getToken();
+    await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+      'fcmToken': token,
+    });
+  }
+}
+
+*/
 }
