@@ -5,10 +5,11 @@ class StoryModel{
   final String id;
   final String userId;
   final String username;
-  final String imageUrl;
+  final List<String> images; //list instead
   final DateTime createdAt ;
 
-  StoryModel({required this.id, required this.userId, required this.username, required this.imageUrl, required this.createdAt});
+  StoryModel({required this.id, required this.userId, required this.username, required this.images
+  , required this.createdAt});
    // method return firebase object to dart object using factory pattern  
  factory StoryModel.fromMap(Map<String,dynamic>map,String id){
  return StoryModel(
@@ -16,7 +17,7 @@ class StoryModel{
    id: id,
    userId: map['userId'] ?? '',
     username: map['username'] ?? '',
-     imageUrl: map['imageUrl']?? '', 
+     images: List<String>.from( map['images']?? []), 
     createdAt:( map['createdAt'] as Timestamp).toDate()
      );
  
@@ -26,7 +27,7 @@ class StoryModel{
 return{
  'userId':userId,
  'username':username,
-  'imageUrl':imageUrl,
+  'imageUrl':images,//
   'createdAt':FieldValue.serverTimestamp(),
 
 };

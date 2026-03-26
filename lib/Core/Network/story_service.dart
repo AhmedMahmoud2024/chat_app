@@ -34,15 +34,17 @@ try{
  if(response.statusCode==200){
   var data =jsonDecode(response.body);
    String downloadUrl= data['data']['url']; //imge direct url
- 
+  
+  final userStoryRef= FirebaseFirestore.instance.collection('stories').doc(userId);
  //save story data into firebase firestore
-  await _db.collection('stories').add({
+  await userStoryRef.update({
  'userId':userId,
  'username':username,
- 'imageUrl':downloadUrl,
+ 'images':FieldValue.arrayUnion([downloadUrl]),
   'createdAt':FieldValue.serverTimestamp(),
 });
   log('upload successfully in imgbb');
+  SetOptions(merge: true);
  }
  }else{
   log('Error uploading story: ');
