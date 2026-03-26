@@ -1,6 +1,9 @@
 import 'package:chat_app/Core/Network/story_service.dart';
 import 'package:chat_app/Features/Auth/presentation/Chat/chat_screen.dart';
 import 'package:chat_app/Features/Users/data/models/story_model.dart';
+import 'package:chat_app/Features/Users/widgets/build_add_button.dart';
+import 'package:chat_app/Features/Users/widgets/build_story_circle.dart';
+import 'package:chat_app/Features/Users/widgets/story_content_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -40,8 +43,8 @@ class _UsersScreenState extends State<UsersScreen> {
                     padding: EdgeInsets.symmetric(horizontal: 10),
                     itemCount: stories.length+1,
                     itemBuilder: (context,index){
-                      if(index==0) return _buildAddButton();
-                      return _buildStoryCircule(stories[index-1]);
+                      if(index==0) return BuildAddButton(isUploading: _isUploading);
+                      return BuildStoryCircle(story: stories[index-1]);
                     }); 
                    }
                    ),
@@ -89,105 +92,7 @@ class _UsersScreenState extends State<UsersScreen> {
       )
     );
   }
-
-Widget _buildAddButton(){
- return GestureDetector(
-  behavior: HitTestBehavior.opaque,
-  onTap:() async{
-    await StoryService().uploadStory(
-      userId: FirebaseAuth.instance.currentUser!.uid,
-      username: FirebaseAuth.instance.currentUser!.displayName ?? '',
-    );
-  },
-    child: Column(
-    children: [
-      Stack(
-        alignment: Alignment.bottomRight,
-
-        children: [
-          CircleAvatar(
-            radius: 30,
-            backgroundColor: Colors.grey[200],
-            child: _isUploading ? CircularProgressIndicator(strokeWidth: 2,): Icon(Icons.add,color: Colors.blue,),
-              
-          ),
-        ],
-      ),
-      Text('Your Story',style: TextStyle(fontSize: 12),)
-    ],
-  ),
- ) ;
-}
-
-// ignore: strict_top_level_inference
-Widget _buildStoryCircule(stories) {
-return GestureDetector(
-  onTap: () {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => StoryContentView(
-        url:stories.imageUrl,
-        name:stories.username,
-      ),));
-  },
-  child: Padding(padding: EdgeInsets.symmetric(horizontal: 8),
-  child: Column(
-    children: [
-  Container(
-    padding: EdgeInsets.all(2),
-    decoration: BoxDecoration(
-      shape: BoxShape.circle,
-      border: Border.all(color: Colors.blue,width: 2),
-
-      
-    ),
-    child: CircleAvatar(
-      radius: 28,
-      backgroundImage:( stories.imageUrl !=null && stories.imageUrl.isNotEmpty ? NetworkImage(stories.imageUrl) : null),
-      child: (stories.imageUrl ==null || stories.imageUrl.isEmpty) ? Icon(Icons.person,color: Colors.white,): null,
-      /*
-        stories.imageUrl.isEmpty ? Container(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          image: DecorationImage(
-           fit: BoxFit.cover,
-            image: NetworkImage(stories.imageUrl))
-        ),
-        
-      ) :CircularProgressIndicator()
-     */
-     // backgroundImage: NetworkImage(stories.imageUrl !=null && stories.imageUrl.isNotEmpty ? stories.imageUrl : ''),
-    //  child: stories.imageUrl ==null || stories.imageUrl.isEmpty ? Icon(Icons.person,color: Colors.white,): null,
-    ),
-  ),
-  
-    ],
-  ),
-));
 }
 
 
-}
-
-class StoryContentView extends StatelessWidget{
-  final String url ;
-  final String name ;
-  final StoryController controller = StoryController();
-  StoryContentView({required this.url,required this.name});
-  
-  @override
-  Widget build(BuildContext context) {
-  final StoryController controller = StoryController();
-   return Scaffold(
-body: StoryView(storyItems:[ StoryItem.pageImage(
-  url: url,
-   controller: controller,
-   caption: Text(name),
-    ),],
-    onComplete: () {
-      Navigator.pop(context);
-    }, controller: controller,
-    )
-    
-   );
-  }
-}
 
