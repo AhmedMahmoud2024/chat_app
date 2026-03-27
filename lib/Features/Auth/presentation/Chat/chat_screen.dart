@@ -1,5 +1,6 @@
 
 import 'package:chat_app/Core/Network/firebase_auth_service.dart';
+import 'package:chat_app/Features/Audio%20Calls/call_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -66,7 +67,19 @@ class _ChatScreenState extends State<ChatScreen> {
   
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.receiverName)
+        title: Text(widget.receiverName),
+        actions: [
+          IconButton(
+             icon:Icon(Icons.phone) ,
+            onPressed: (){
+
+        Navigator.push(context,MaterialPageRoute(builder: (context)=>CallScreen(
+          channelName: widget.receiverName,
+           remoteUserName: 
+           widget.receiverName)));
+          },
+          )
+        ],
       ),
       body: Column(
         children: [

@@ -21,17 +21,14 @@ void main() async{
   ]) ;
   
   
-  /*
-  FirebaseMessaging messaging =FirebaseMessaging.instance;
-  await messaging.requestPermission();
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-  if (message.notification != null) {
-    print('Message title: ${message.notification!.title}');
-    print('Message body: ${message.notification!.body}');
-    // Show a local notification using flutter_local_notifications
+  if (message.data['type'] == 'call') {
+  String callerName=message.data['callerName'];
+  String channelId=message.data['channelId'];
   }
+  
 });
-*/
+
   runApp(const MyApp());
 }
 
