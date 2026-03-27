@@ -4,8 +4,13 @@ import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:chat_app/Features/Audio%20Calls/call_screen.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_callkit_incoming/entities/android_params.dart';
+import 'package:flutter_callkit_incoming/entities/call_event.dart';
+import 'package:flutter_callkit_incoming/entities/call_kit_params.dart';
+import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
+import 'package:uuid/uuid.dart';
 
 class CallService{
   late RtcEngine engine;
@@ -88,5 +93,47 @@ Future<void> sendCallNatification(
  }catch(e){
 print(e.toString());
  }
+} 
+static Future<void> showIncomingCall(
+  String callerName,
+  String channelId
+)async{
+String uuid= const Uuid().v4(); //random id for each call
+CallKitParams params=CallKitParams(
+  id: uuid,
+  nameCaller: callerName,
+  appName: 'Chat App',
+  type: 0,
+  textAccept: 'Response',
+  textDecline: 'refused',
+  extra: <String,dynamic>{
+    'channelId':channelId,
+  },
+  android: const AndroidParams(
+    isCustomNotification: true,
+    isShowLogo: false,
+    ringtonePath: 'system_ringtone_default',
+    backgroundColor: '#09121C',
+    actionColor: '#4CAF50'
+  )
+);
+await FlutterCallkitIncoming.showCallkitIncoming(params);
+}
+
+void listenToCallEvents(BuildContext context){
+FlutterCallkitIncoming.onEvent.listen((event){
+switch (event!.event){
+  case Event.actionCallAccept:
+  String channelId= event.body['extra']['channelId'];
+    Navigator.push(context, MaterialPageRoute(builder: (context)=>CallScreen(channelName: 
+    channelId, remoteUserName: '', 
+    )
+    )
+    );
+  case Event.actionCallDecline :
+   break;
+  default: break;
+}
+});
 }
 }

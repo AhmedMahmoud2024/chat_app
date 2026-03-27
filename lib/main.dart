@@ -1,5 +1,6 @@
 
 
+import 'package:chat_app/Core/Network/call_service.dart';
 import 'package:chat_app/Core/Network/local_notification_services.dart';
 import 'package:chat_app/Core/Network/push_notifications_service.dart';
 import 'package:chat_app/Features/Auth/presentation/register/create_account_page.dart';
@@ -32,8 +33,23 @@ void main() async{
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+@override
+
+  void initState() {
+    super.initState();
+    Future.delayed(Duration.zero,(){
+CallService().listenToCallEvents(context);
+    });
+
+  }
 
   @override
   Widget build(BuildContext context) {
