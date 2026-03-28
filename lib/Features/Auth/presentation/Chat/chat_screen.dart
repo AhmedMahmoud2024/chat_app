@@ -1,5 +1,6 @@
 
 import 'package:chat_app/Core/Network/firebase_auth_service.dart';
+import 'package:chat_app/Core/Network/socket_service.dart';
 import 'package:chat_app/Features/Audio%20Calls/call_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -61,6 +62,16 @@ class _ChatScreenState extends State<ChatScreen> {
     );
     }
   }
+void callUser(String receiverId){
+SocketService.socket.emit('call-user',{
+  'receiverId':receiverId,
+  'callerId':currentUserId,
+  'callerName':widget.receiverName,
+  'channelId':widget.receiverName,
+  'type': 'audio'
+}
+  );
+ }
 
   @override
   Widget build(BuildContext context) {
@@ -72,9 +83,9 @@ class _ChatScreenState extends State<ChatScreen> {
           IconButton(
              icon:Icon(Icons.phone) ,
             onPressed: (){
-
+      callUser(widget.receiverId);
         Navigator.push(context,MaterialPageRoute(builder: (context)=>CallScreen(
-          channelName: widget.receiverName,
+          channelName: "test-room",
            remoteUserName: 
            widget.receiverName)));
           },

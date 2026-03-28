@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:chat_app/Core/Network/call_service.dart';
+import 'package:chat_app/Core/Network/socket_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_callkit_incoming/entities/call_event.dart';
@@ -22,6 +24,18 @@ class _CallScreenState extends State<CallScreen> {
   bool _isSpeaker=true;
   
   Future<void> initializeCall()async{
+      SocketService.connect(myUserId: FirebaseAuth.instance.currentUser!.uid);
+     Future.delayed(Duration(seconds: 1),(){
+        if(SocketService.socket.connected){
+          print('socket connected successfully');
+       SocketService.socket.emit('test-connection',{
+  'message':'Hi Server!'
+  });
+        }else{
+          print('socket is still connecting');
+        }
+     });
+    
  await  CallService().requestPermissions();
 await  CallService().joinCall(widget.channelName);
   }

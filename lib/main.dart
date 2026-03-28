@@ -3,6 +3,7 @@
 import 'package:chat_app/Core/Network/call_service.dart';
 import 'package:chat_app/Core/Network/local_notification_services.dart';
 import 'package:chat_app/Core/Network/push_notifications_service.dart';
+import 'package:chat_app/Core/Network/socket_service.dart';
 import 'package:chat_app/Features/Auth/presentation/register/create_account_page.dart';
 import 'package:chat_app/Features/Users/users_screen.dart';
 import 'package:chat_app/firebase_options.dart';
@@ -45,9 +46,17 @@ class _MyAppState extends State<MyApp> {
 
   void initState() {
     super.initState();
-    Future.delayed(Duration.zero,(){
-CallService().listenToCallEvents(context);
-    });
+   // String userId=FirebaseAuth.instance.currentUser!.uid;
+  //  if(userId!=null){
+  SocketService.connect(myUserId: FirebaseAuth.instance.currentUser!.uid);
+  
+   // }
+ // SocketService.socket.emit('test-connection',{
+ // 'message':'Hi Server!'
+ // });
+  //  Future.delayed(Duration.zero,(){
+// CallService().listenToCallEvents(context);
+//    });
 
   }
 
