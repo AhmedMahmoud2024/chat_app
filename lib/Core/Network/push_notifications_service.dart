@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:chat_app/Core/Network/call_service.dart';
 import 'package:chat_app/Core/Network/local_notification_services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -18,6 +19,9 @@ handleForegroundMessage();
 }
 static Future<void> handleBackgroundMessage(RemoteMessage message)async{
  await Firebase.initializeApp();
+if(message.data['type']=='call'){
+  await CallService().showIncomingCall(message.data);
+}
  log(message.notification?.title ?? 'null');
 }
 

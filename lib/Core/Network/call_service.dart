@@ -94,20 +94,20 @@ Future<void> sendCallNatification(
 print(e.toString());
  }
 } 
-static Future<void> showIncomingCall(
-  String callerName,
-  String channelId
+ Future<void> showIncomingCall(
+ Map<String,dynamic>data
 )async{
 String uuid= const Uuid().v4(); //random id for each call
 CallKitParams params=CallKitParams(
-  id: uuid,
-  nameCaller: callerName,
+  id:uuid,
+  nameCaller: data['callerName'] ?? 'unknown caller',
   appName: 'Chat App',
   type: 0,
   textAccept: 'Response',
   textDecline: 'refused',
   extra: <String,dynamic>{
-    'channelId':channelId,
+    'channelId':data['channelId'],
+    'token':data['token']
   },
   android: const AndroidParams(
     isCustomNotification: true,
