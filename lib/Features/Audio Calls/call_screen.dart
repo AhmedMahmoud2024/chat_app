@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_callkit_incoming/entities/call_event.dart';
+import 'package:flutter_callkit_incoming/entities/entities.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:http/http.dart' as http;
 
@@ -29,8 +30,24 @@ class _CallScreenState extends State<CallScreen> {
         if(SocketService.socket.connected){
           print('socket connected successfully');
        SocketService.socket.emit('test-connection',{
-  'message':'Hi Server!'
-  });
+  'message':'Hello From My Flutter chat App!'
+  });  
+     SocketService.socket.on('test-response',(data){
+      print('Received response from server: $data');
+     });
+   ////////////// listen to incoming call events
+        SocketService.socket.on('incoming-call',(data)async{
+         var callConfig= CallKitParams(
+          id: data['channelId'],
+          nameCaller: data['callerName'],
+          type: 1,
+          extra: <String,dynamic>{
+            'userId':data['callerId'],
+          }
+         );
+
+         await FlutterCallkitIncoming.showCallkitIncoming(callConfig);
+        });
         }else{
           print('socket is still connecting');
         }

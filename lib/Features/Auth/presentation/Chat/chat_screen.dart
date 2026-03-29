@@ -2,6 +2,7 @@
 import 'package:chat_app/Core/Network/firebase_auth_service.dart';
 import 'package:chat_app/Core/Network/socket_service.dart';
 import 'package:chat_app/Features/Audio%20Calls/call_screen.dart';
+import 'package:chat_app/Features/recents%20Screen/presentation/recents_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -89,7 +90,15 @@ SocketService.socket.emit('call-user',{
            remoteUserName: 
            widget.receiverName)));
           },
-          )
+          ),
+            IconButton(
+             icon:Icon(Icons.history) ,
+            onPressed: (){
+        Navigator.push(context,MaterialPageRoute(builder: (context)=>RecentsScreen(
+           )
+           ));
+          },
+          ),
         ],
       ),
       body: Column(
