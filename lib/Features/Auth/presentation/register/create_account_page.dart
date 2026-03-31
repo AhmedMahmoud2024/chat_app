@@ -1,6 +1,9 @@
+import 'package:chat_app/Core/Network/biometric_service.dart';
 import 'package:chat_app/Core/Network/firebase_auth_service.dart';
 import 'package:chat_app/Features/Auth/presentation/login/login_page.dart';
+import 'package:chat_app/Features/Users/users_screen.dart';
 import 'package:custom_form_w/custom_form_w.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class CreateAccountPage extends StatelessWidget {
@@ -63,7 +66,24 @@ class CreateAccountPage extends StatelessWidget {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => LoginPage()));
               }, child: Text('Login'))
             ],
-          )
+          ),
+         /* 
+          ElevatedButton(onPressed: ()async{
+            bool isAuthenticated= await BiometricService().authenticate();
+            if(isAuthenticated){
+             try{
+              UserCredential user=await FirebaseAuth.instance.createUserWithEmailAndPassword(
+                email: emailController.text,
+                 password: passwordController.text);
+                 Navigator.push(context, MaterialPageRoute(builder: (context) => UsersScreen()));
+             }catch(e){
+              print(e.toString());
+             }
+            }else{
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Biometric authentication failed')));
+            }
+          }, child: Text('Register with Biometric'))
+            */
         ],
       ),
     );

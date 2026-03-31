@@ -95,6 +95,7 @@ SocketService.socket.emit('call-user',{
              icon:Icon(Icons.history) ,
             onPressed: (){
         Navigator.push(context,MaterialPageRoute(builder: (context)=>RecentsScreen(
+          myUser: currentUserId!
            )
            ));
           },

@@ -1,15 +1,36 @@
+import 'package:chat_app/Core/Network/biometric_service.dart';
 import 'package:chat_app/Core/Network/firebase_auth_service.dart';
 import 'package:chat_app/Features/Auth/presentation/register/create_account_page.dart';
 import 'package:chat_app/Features/Users/users_screen.dart';
 import 'package:custom_form_w/custom_form_w.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
-class LoginPage extends StatelessWidget {
+import 'package:firebase_auth/firebase_auth.dart';
+class LoginPage extends StatefulWidget {
+ 
    LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+
+class _LoginPageState extends State<LoginPage> {
+
    final TextEditingController emailController = TextEditingController();
    final TextEditingController passwordController = TextEditingController();
+
+ @override
+  void initState() {
+    super.initState();
+
+  }
+
   @override
   Widget build(BuildContext context) {
+
+
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Column(
@@ -53,9 +74,27 @@ class LoginPage extends StatelessWidget {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => CreateAccountPage()));
               }, child: Text('Create Account'))
             ],
-          )
+            
+          ),
+          
         ],
       ),
     );
   }
+  Future<void> loginWithBiometric()async{
+  bool authenticated= await BiometricService().authenticate();
+  if(authenticated){
+  // ignore: non_constant_identifier_names
+  final  user = FirebaseAuth.instance.currentUser;
+    if(user !=null){
+     
+      Navigator.push(context, MaterialPageRoute(builder: (context)=>UsersScreen()));
+    }else{
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No user logged in'))
+      );
+    }
+  }
+ }
 }
+

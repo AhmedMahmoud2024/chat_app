@@ -7,8 +7,8 @@ import 'package:http/http.dart' as http;
 
 
 class RecentsScreen extends StatefulWidget {
-  const RecentsScreen({super.key});
-
+final String myUser;
+   RecentsScreen({super.key, required this.myUser});
   @override
   State<RecentsScreen> createState() => _RecentsScreenState();
 }
@@ -16,7 +16,12 @@ class RecentsScreen extends StatefulWidget {
 class _RecentsScreenState extends State<RecentsScreen> {
 List <CallLogModel> logs=[];
 Future<List<CallLogModel>> fetchLogs()async{
-final response = await http.get(Uri.parse('http://192.168.0.105:3000/call-history/userId'));
+  final uri = "http://192.168.0.105:3000/call-history/${widget.myUser}";
+  print('calling URL: $uri');
+final response = await http.get(Uri.parse(
+uri
+  ));
+  print('Response body: ${response.body}');
 if(response.statusCode==200){
   List data = json.decode(response.body);
   return data.map((log)=>
@@ -28,7 +33,11 @@ return [];
 @override
   void initState() {
     super.initState();
-    fetchLogs();
+    fetchLogs().then((fetchedLogs){
+      setState(() {
+        logs = fetchedLogs;
+      });
+    });
    SocketService.socket.on('new-log-added', (data){
 if(mounted){
       setState(() {
