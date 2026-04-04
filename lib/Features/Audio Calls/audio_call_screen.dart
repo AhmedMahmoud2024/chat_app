@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:chat_app/Core/Network/call_service.dart';
 import 'package:chat_app/Core/Network/socket_service.dart';
+import 'package:chat_app/Features/Audio%20Calls/widgets/call_button.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -10,21 +11,21 @@ import 'package:flutter_callkit_incoming/entities/entities.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:http/http.dart' as http;
 
-class CallScreen extends StatefulWidget {
+class AudioCallScreen extends StatefulWidget {
   final String channelName;
   final String remoteUserName;
 
-   CallScreen({super.key, required this.channelName, required this.remoteUserName});
+   AudioCallScreen({super.key, required this.channelName, required this.remoteUserName});
 
   @override
-  State<CallScreen> createState() => _CallScreenState();
+  State<AudioCallScreen> createState() => _AudioCallScreenState();
 }
 
-class _CallScreenState extends State<CallScreen> {
+class _AudioCallScreenState extends State<AudioCallScreen> {
   bool _isMuted=false;
   bool _isSpeaker=true;
-  
-  Future<void> initializeCall()async{
+ /* 
+  Future<void> initializeCall()async{  
       SocketService.connect(myUserId: FirebaseAuth.instance.currentUser!.uid);
      Future.delayed(Duration(seconds: 1),(){
         if(SocketService.socket.connected){
@@ -56,10 +57,11 @@ class _CallScreenState extends State<CallScreen> {
  await  CallService().requestPermissions();
 await  CallService().joinCall(widget.channelName);
   }
+  */
 @override
   void initState( ) {
      super.initState();
-     initializeCall();
+  CallService().initializeCall(widget.channelName);
   }
 
 
@@ -92,7 +94,7 @@ await  CallService().joinCall(widget.channelName);
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              buildCallButton(
+              CallButton(
                 icon:_isMuted ?Icons.mic_off :Icons.mic,
                 color:_isMuted ? Colors.white :Colors.white24,
                 iconColor: _isMuted ? Colors.black : Colors.white,
@@ -103,7 +105,7 @@ await  CallService().joinCall(widget.channelName);
                   });
                 }
               ),
-                buildCallButton(
+                CallButton(
                 icon:Icons.call_end,
                 color:Colors.red,
                 iconColor: Colors.white,size:70,
@@ -111,7 +113,7 @@ await  CallService().joinCall(widget.channelName);
                   Navigator.pop(context);
                 }
               ),
-                buildCallButton(
+                CallButton(
                 icon:_isSpeaker ?Icons.volume_up :Icons.volume_down,
                 color:_isSpeaker ? Colors.white :Colors.white24,
                 iconColor: _isSpeaker ? Colors.black : Colors.white,
@@ -126,25 +128,6 @@ await  CallService().joinCall(widget.channelName);
         
         ],
       )),
-    );
-  }
-
-  Widget buildCallButton(
-    {
-      required IconData icon,
-      required Color color,
-      required Color iconColor,
-      required VoidCallback onPressed,
-      double size = 55
-    }
-  ){
-    return RawMaterialButton(onPressed: onPressed,
-    shape: const CircleBorder(),
-    fillColor: color,
-    constraints: BoxConstraints.tightFor(
-      width: size,height: size
-    ),
-    child: Icon(icon,color: iconColor,size: size*5,),
     );
   }
 }

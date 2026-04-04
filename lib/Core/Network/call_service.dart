@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
-import 'package:chat_app/Features/Audio%20Calls/call_screen.dart';
+import 'package:chat_app/Core/Network/socket_service.dart';
+import 'package:chat_app/Features/Audio%20Calls/audio_call_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_callkit_incoming/entities/android_params.dart';
@@ -125,7 +127,7 @@ FlutterCallkitIncoming.onEvent.listen((event){
 switch (event!.event){
   case Event.actionCallAccept:
   String channelId= event.body['extra']['channelId'];
-    Navigator.push(context, MaterialPageRoute(builder: (context)=>CallScreen(channelName: 
+    Navigator.push(context, MaterialPageRoute(builder: (context)=>AudioCallScreen(channelName: 
     channelId, remoteUserName: '', 
     )
     )
@@ -136,6 +138,40 @@ switch (event!.event){
 }
 });
 }
+
+ Future<void> initializeCall(  String channelName )async{  
+  
+      SocketService.connect(myUserId: FirebaseAuth.instance.currentUser!.uid);
+     Future.delayed(Duration(seconds: 1),(){
+        if(SocketService.socket.connected){
+          print('socket connected successfully');
+       SocketService.socket.emit('test-connection',{
+  'message':'Hello From My Flutter chat App!'
+  });  
+     SocketService.socket.on('test-response',(data){
+      print('Received response from server: $data');
+     });
+   ////////////// listen to incoming call events
+        SocketService.socket.on('incoming-call',(data)async{
+         var callConfig= CallKitParams(
+          id: data['channelId'],
+          nameCaller: data['callerName'],
+          type: 1,
+          extra: <String,dynamic>{
+            'userId':data['callerId'],
+          }
+         );
+
+         await FlutterCallkitIncoming.showCallkitIncoming(callConfig);
+        });
+        }else{
+          print('socket is still connecting');
+        }
+     });
+    
+ await  CallService().requestPermissions();
+await  CallService().joinCall(channelName);
+  }
 
 }
 
