@@ -13,24 +13,16 @@ class LoginPage extends StatefulWidget {
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
-
-
 class _LoginPageState extends State<LoginPage> {
-
    final TextEditingController emailController = TextEditingController();
    final TextEditingController passwordController = TextEditingController();
-
  @override
   void initState() {
     super.initState();
 
   }
-
   @override
   Widget build(BuildContext context) {
-
-
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: Column(
@@ -81,20 +73,5 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
-  Future<void> loginWithBiometric()async{
-  bool authenticated= await BiometricService().authenticate();
-  if(authenticated){
-  // ignore: non_constant_identifier_names
-  final  user = FirebaseAuth.instance.currentUser;
-    if(user !=null){
-     
-      Navigator.push(context, MaterialPageRoute(builder: (context)=>UsersScreen()));
-    }else{
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No user logged in'))
-      );
-    }
-  }
- }
 }
 

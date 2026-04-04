@@ -18,20 +18,16 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
     TextEditingController _messageController = TextEditingController();
-
     final  _scrollController = ScrollController();
-
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
-
-   @override
+  @override
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
-
-
+  
   String _getChatId(){
     final ids =[widget.receiverId,currentUserId];
     ids.sort();

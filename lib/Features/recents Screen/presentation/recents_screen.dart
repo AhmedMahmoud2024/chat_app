@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:chat_app/Core/Network/call_service.dart';
 import 'package:chat_app/Core/Network/socket_service.dart';
 import 'package:chat_app/Features/recents%20Screen/data/model/call_log_model.dart';
 import 'package:flutter/material.dart';
@@ -15,25 +16,11 @@ final String myUser;
 
 class _RecentsScreenState extends State<RecentsScreen> {
 List <CallLogModel> logs=[];
-Future<List<CallLogModel>> fetchLogs()async{
-  final uri = "http://192.168.0.105:3000/call-history/${widget.myUser}";
-  print('calling URL: $uri');
-final response = await http.get(Uri.parse(
-uri
-  ));
-  print('Response body: ${response.body}');
-if(response.statusCode==200){
-  List data = json.decode(response.body);
-  return data.map((log)=>
-    CallLogModel.fromJson(log)
-  ).toList();
-}
-return [];
-}  
+
 @override
   void initState() {
     super.initState();
-    fetchLogs().then((fetchedLogs){
+    CallService().fetchLogs(widget.myUser).then((fetchedLogs){
       setState(() {
         logs = fetchedLogs;
       });
@@ -53,7 +40,7 @@ if(mounted){
       appBar: AppBar(
         title: Text('Recent Calls'),
       ),
-      body: FutureBuilder(future: fetchLogs(),
+      body: FutureBuilder(future: CallService().fetchLogs(widget.myUser),
        builder: (context,snapshot){
         if(!snapshot.hasData) return Center(child: CircularProgressIndicator(),);
          return ListView.builder(
