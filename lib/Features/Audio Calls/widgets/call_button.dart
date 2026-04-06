@@ -10,7 +10,8 @@ class CallButton extends StatelessWidget {
   required this.icon, required this.color,
    required this.iconColor,
     required this.onPressed,
-    this.size = 55});
+    this.size = 55
+    });
 
   @override
   Widget build(BuildContext context) {

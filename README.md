@@ -12,4 +12,4 @@ A Simple Chat app with Firebase .
 7-using node js to establish our server via web socket to be good
 8-conncting with mongodb 
 ## On Working Features:
-9-use stream platform  
+

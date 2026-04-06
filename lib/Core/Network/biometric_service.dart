@@ -1,4 +1,7 @@
- import 'package:local_auth/local_auth.dart';
+ import 'package:chat_app/Features/Users/users_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:local_auth/local_auth.dart';
   import 'package:local_auth_android/local_auth_android.dart';
  class BiometricService {
   final LocalAuthentication auth = LocalAuthentication();
@@ -25,4 +28,21 @@ print(e.toString());
 return false ;
 }
 }
+
+  Future<void> loginWithBiometric( BuildContext context)async{
+  bool authenticated= await BiometricService().authenticate();
+  if(authenticated){
+  // ignore: non_constant_identifier_names
+  final  user = FirebaseAuth.instance.currentUser;
+    if(user !=null){
+     
+      Navigator.push(context, MaterialPageRoute(builder: (context)=>UsersScreen()));
+    }else{
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No user logged in'))
+      );
+    }
+  }
+ }
+
 }

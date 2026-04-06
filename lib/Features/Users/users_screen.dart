@@ -1,5 +1,5 @@
 import 'package:chat_app/Core/Network/story_service.dart';
-import 'package:chat_app/Features/Auth/presentation/Chat/chat_screen.dart';
+import 'package:chat_app/Features/Chat/chat_screen.dart';
 import 'package:chat_app/Features/Users/data/models/story_model.dart';
 import 'package:chat_app/Features/Users/widgets/build_add_button.dart';
 import 'package:chat_app/Features/Users/widgets/build_story_circle.dart';

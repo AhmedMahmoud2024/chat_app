@@ -67,23 +67,6 @@ class CreateAccountPage extends StatelessWidget {
               }, child: Text('Login'))
             ],
           ),
-         /* 
-          ElevatedButton(onPressed: ()async{
-            bool isAuthenticated= await BiometricService().authenticate();
-            if(isAuthenticated){
-             try{
-              UserCredential user=await FirebaseAuth.instance.createUserWithEmailAndPassword(
-                email: emailController.text,
-                 password: passwordController.text);
-                 Navigator.push(context, MaterialPageRoute(builder: (context) => UsersScreen()));
-             }catch(e){
-              print(e.toString());
-             }
-            }else{
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Biometric authentication failed')));
-            }
-          }, child: Text('Register with Biometric'))
-            */
         ],
       ),
     );

@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:chat_app/Core/Network/socket_service.dart';
 import 'package:chat_app/Features/Audio%20Calls/audio_call_screen.dart';
+import 'package:chat_app/Features/recents%20Screen/data/model/call_log_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -173,5 +174,21 @@ switch (event!.event){
 await  CallService().joinCall(channelName);
   }
 
+
+Future<List<CallLogModel>> fetchLogs(String myUser)async{
+  final uri = "http://192.168.0.105:3000/call-history/$myUser";
+  print('calling URL: $uri');
+final response = await http.get(Uri.parse(
+uri
+  ));
+  print('Response body: ${response.body}');
+if(response.statusCode==200){
+  List data = json.decode(response.body);
+  return data.map((log)=>
+    CallLogModel.fromJson(log)
+  ).toList();
+}
+return [];
+}  
 }
 
