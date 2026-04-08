@@ -3,7 +3,7 @@ import 'package:chat_app/Core/Network/firebase_auth_service.dart';
 import 'package:chat_app/Core/Network/socket_service.dart';
 import 'package:chat_app/Features/Audio%20Calls/audio_call_screen.dart';
 import 'package:chat_app/Features/recents%20Screen/presentation/recents_screen.dart';
-import 'package:chat_app/Features/video%20service/video_calls.dart';
+import 'package:chat_app/Features/video_%20service/video_calls.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -92,7 +92,10 @@ SocketService.socket.emit('call-user',{
              icon:Icon(Icons.video_call) ,
             onPressed: (){
         Navigator.push(context,MaterialPageRoute(builder: (context)=>
-        VideoCalls()
+        VideoCalls(
+          callId: 'video-${widget.receiverId}-${DateTime.now().millisecondsSinceEpoch}',
+          memberIds: [widget.receiverId],
+        )
            )
            );
           },

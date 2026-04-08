@@ -1,25 +1,78 @@
 import 'dart:convert';
+import 'dart:developer';
 
-import 'package:chat_app/Features/video%20service/managers/stream_manager.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 
-class VideoService{
+class VideoService {
+  static const int maxRetries = 3;
+  static const Duration baseDelay = Duration(milliseconds: 500);
+  static const String tokenEndpoint = 'http://192.168.0.106:3000/get-stream-token';
+  static const int tokenFetchTimeout = 10;
 
-static Future<String?> getStreamToken(String userId)async{
-  final String url = 'http://192.168.0.106:3000/token?userId=$userId}'; 
-  final response = await http.get(Uri.parse(url),
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer$userId'
-  }
-  
-  
-    );
-    if(response.statusCode==200){
-    return jsonDecode(response.body)['token'];
+  static Future<String?> getStreamToken(String userId) async {
+    int retryCount = 0;
+    
+    while (retryCount < maxRetries) {
+      try {
+        final String url = '$tokenEndpoint?userId=$userId';
+        
+        final response = await http
+            .get(
+              Uri.parse(url),
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer $userId'
+              },
+            )
+            .timeout(
+              const Duration(seconds: tokenFetchTimeout),
+              onTimeout: () => throw TimeoutException(
+                'Token fetch timed out after $tokenFetchTimeout seconds',
+              ),
+            );
+
+        if (response.statusCode == 200) {
+          log('[VideoService] Token fetched successfully for userId: $userId');
+          return jsonDecode(response.body)['token'];
+        }
+
+        log('[VideoService] Token fetch failed with status ${response.statusCode}');
+        retryCount++;
+        
+        if (retryCount < maxRetries) {
+          final delay = baseDelay * (1 << (retryCount - 1));
+          log('[VideoService] Retrying token fetch (attempt $retryCount/$maxRetries) after ${delay.inMilliseconds}ms');
+          await Future.delayed(delay);
+        }
+      } on TimeoutException catch (e) {
+        log('[VideoService] Token fetch timeout: $e');
+        retryCount++;
+        
+        if (retryCount < maxRetries) {
+          final delay = baseDelay * (1 << (retryCount - 1));
+          log('[VideoService] Retrying after timeout (attempt $retryCount/$maxRetries) after ${delay.inMilliseconds}ms');
+          await Future.delayed(delay);
+        }
+      } catch (e) {
+        log('[VideoService] Unexpected error fetching token: $e');
+        retryCount++;
+        
+        if (retryCount < maxRetries) {
+          final delay = baseDelay * (1 << (retryCount - 1));
+          await Future.delayed(delay);
+        }
+      }
     }
-   //await StreamManager.init(currentUser!.uid, currentUser!.displayName!, jwt);  
-    return null ;
+
+    log('[VideoService] Failed to fetch token after $maxRetries attempts for userId: $userId');
+    return null;
   }
+}
+
+class TimeoutException implements Exception {
+  final String message;
+  TimeoutException(this.message);
+  
+  @override
+  String toString() => 'TimeoutException: $message';
 }

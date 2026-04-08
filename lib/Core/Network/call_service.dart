@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
@@ -5,7 +6,6 @@ import 'package:chat_app/Core/Network/socket_service.dart';
 import 'package:chat_app/Features/Audio%20Calls/audio_call_screen.dart';
 import 'package:chat_app/Features/recents%20Screen/data/model/call_log_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_callkit_incoming/entities/android_params.dart';
 import 'package:flutter_callkit_incoming/entities/call_event.dart';
@@ -15,9 +15,13 @@ import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:uuid/uuid.dart';
 
-class CallService{
+class CallService {
   late RtcEngine engine;
   String appId = 'fecc7bbac27a41c098b942c99d287b60';
+  
+  /// Track listeners for cleanup to prevent memory leaks
+  final Map<String, StreamSubscription?> _listeners = {};
+  bool _isInitialized = false;
 Future<void> requestPermissions()async{
 Map<Permission,PermissionStatus> status= await [
   Permission.microphone
@@ -140,35 +144,79 @@ switch (event!.event){
 });
 }
 
- Future<void> initializeCall(  String channelName )async{  
+ Future<void> initializeCall(String channelName) async {
+  log('[CallService] Initializing call for channel: $channelName');
   
-      SocketService.connect(myUserId: FirebaseAuth.instance.currentUser!.uid);
-     Future.delayed(Duration(seconds: 1),(){
-        if(SocketService.socket.connected){
-          print('socket connected successfully');
-       SocketService.socket.emit('test-connection',{
-  'message':'Hello From My Flutter chat App!'
-  });  
-     SocketService.socket.on('test-response',(data){
-      print('Received response from server: $data');
-     });
-   ////////////// listen to incoming call events
-        SocketService.socket.on('incoming-call',(data)async{
-         var callConfig= CallKitParams(
-          id: data['channelId'],
-          nameCaller: data['callerName'],
-          type: 1,
-          extra: <String,dynamic>{
-            'userId':data['callerId'],
-          }
-         );
-
-         await FlutterCallkitIncoming.showCallkitIncoming(callConfig);
-        });
-        }else{
-          print('socket is still connecting');
-        }
-     });
+  try {
+    // Connect to Socket.IO server
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      throw Exception('User not authenticated');
+    }
+    
+    log('[CallService] Connecting to Node.js server...');
+    SocketService.connect(myUserId: currentUser.uid);
+    
+    // Wait for socket connection with timeout
+    int retries = 0;
+    const maxRetries = 5;
+    
+    while (!SocketService.isConnected && retries < maxRetries) {
+      await Future.delayed(const Duration(milliseconds: 500));
+      retries++;
+    }
+    
+    if (!SocketService.isConnected) {
+      throw Exception('Failed to connect to Node.js server after $maxRetries attempts');
+    }
+    
+    log('[CallService] Socket connected successfully');
+    
+    // Register listeners using SocketService for proper cleanup
+    SocketService.on('test-response', (data) {
+      log('[CallService] Received test response: $data');
+    });
+    
+    SocketService.on('incoming-call', (data) async {
+      log('[CallService] Incoming call received: ${data['callerName']}');
+      
+      var callConfig = CallKitParams(
+        id: data['channelId'] ?? const Uuid().v4(),
+        nameCaller: data['callerName'] ?? 'Unknown',
+        type: 1,
+        extra: <String, dynamic>{
+          'userId': data['callerId'],
+          'channelId': data['channelId'],
+        },
+      );
+      
+      try {
+        await FlutterCallkitIncoming.showCallkitIncoming(callConfig);
+        log('[CallService] Incoming call UI displayed');
+      } catch (e) {
+        log('[CallService] Error showing incoming call UI: $e');
+      }
+    });
+    
+    // Send test connection message
+    SocketService.emit('test-connection', {
+      'message': 'Hello From My Flutter chat App!',
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+    
+    // Request permissions and join call
+    log('[CallService] Requesting permissions...');
+    await requestPermissions();
+    
+    log('[CallService] Joining Agora channel: $channelName');
+    await joinCall(channelName);
+    
+    _isInitialized = true;
+    log('[CallService] Call initialization completed successfully');
+  } catch (e, stackTrace) {
+    log('[CallService] Error initializing call: $e\nStackTrace: $stackTrace');
+    rethrow;
+  }
     
  await  CallService().requestPermissions();
 await  CallService().joinCall(channelName);
@@ -190,5 +238,24 @@ if(response.statusCode==200){
 }
 return [];
 }  
+
+/// Cleanup all listeners to prevent memory leaks
+void cleanup() {
+  log('[CallService] Cleaning up listeners...');
+  for (final listener in _listeners.values) {
+    listener?.cancel();
+  }
+  _listeners.clear();
+  log('[CallService] Listeners cleaned up');
+}
+
+/// Get status string for debugging
+String getStatus() {
+  return '''
+[CallService Status]
+Initialized: $_isInitialized
+Active Listeners: ${_listeners.length}
+  ''';
+}
 }
 

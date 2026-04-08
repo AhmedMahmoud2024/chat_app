@@ -1,6 +1,6 @@
 
 import 'package:chat_app/Core/Network/video_service.dart';
-import 'package:chat_app/Features/video%20service/model/call_user_model.dart';
+import 'package:chat_app/Features/video_%20service/model/call_user_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -16,20 +16,28 @@ class StreamManager {
  static Future<void> init (
   String userId ,String userName,String jwt
  )async{
+  if(_client !=null){
+    print('Stream Client already initialized,skipping');
+    return;
+  }
   final currentUser= FirebaseAuth.instance.currentUser;
  if(currentUser!=null){
+  
   final String ? streamToken=await VideoService.getStreamToken(currentUser.uid);
   if(streamToken!=null){
-    await StreamManager.init(userId, userName, jwt);
+   // await StreamManager.init(userId, userName, jwt);
   print('My token is : $jwt');
   final  token = await VideoService.getStreamToken(jwt);
  if(token==null) throw Exception('Failed to get stream token');
 //make user stream
 final user=CallUserModel(id: userId, name: userName, image: 'https://getstream.io/random_png/?id=$userId'); 
 //User(id: userId, name: userName, avatarUrl: 'https://getstream.io/random_png/?id=$userId');
-  final api = dotenv.env['STREAM_API_KEY'] ?? '';
+  final api =String.fromEnvironment('STREAM_API_KEY');
+
+  //dotenv.load(fileName: ".env") ;
   _client= StreamVideo(api, user: user,userToken: token );
-  await _client!.connect();
+  print('Stream Client intialized successfully');
+ // await _client!.connect();
   }
 
  }
