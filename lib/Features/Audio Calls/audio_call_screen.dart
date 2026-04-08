@@ -1,133 +1,341 @@
-import 'dart:convert';
+import 'dart:async';
+import 'dart:developer';
 
-import 'package:chat_app/Core/Network/call_service.dart';
+import 'package:chat_app/Core/Network/firebase_auth_service.dart';
 import 'package:chat_app/Core/Network/socket_service.dart';
-import 'package:chat_app/Features/Audio%20Calls/widgets/call_button.dart';
+import 'package:chat_app/Features/Audio_Calls/managers/audio_manager.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_callkit_incoming/entities/call_event.dart';
-import 'package:flutter_callkit_incoming/entities/entities.dart';
-import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
-import 'package:http/http.dart' as http;
+import 'package:stream_video_flutter/stream_video_flutter.dart';
 
 class AudioCallScreen extends StatefulWidget {
-  final String channelName;
+  final String callId;
+  final List<String> memberIds;
   final String remoteUserName;
 
-   AudioCallScreen({super.key, required this.channelName, required this.remoteUserName});
+  const AudioCallScreen({
+    super.key,
+    required this.callId,
+    required this.memberIds,
+    required this.remoteUserName,
+  });
 
   @override
   State<AudioCallScreen> createState() => _AudioCallScreenState();
 }
 
 class _AudioCallScreenState extends State<AudioCallScreen> {
-  bool _isMuted=false;
-  bool _isSpeaker=true;
- /* 
-  Future<void> initializeCall()async{  
-      SocketService.connect(myUserId: FirebaseAuth.instance.currentUser!.uid);
-     Future.delayed(Duration(seconds: 1),(){
-        if(SocketService.socket.connected){
-          print('socket connected successfully');
-       SocketService.socket.emit('test-connection',{
-  'message':'Hello From My Flutter chat App!'
-  });  
-     SocketService.socket.on('test-response',(data){
-      print('Received response from server: $data');
-     });
-   ////////////// listen to incoming call events
-        SocketService.socket.on('incoming-call',(data)async{
-         var callConfig= CallKitParams(
-          id: data['channelId'],
-          nameCaller: data['callerName'],
-          type: 1,
-          extra: <String,dynamic>{
-            'userId':data['callerId'],
-          }
-         );
+  bool _isInitializing = false;
+  String? _initializationError;
 
-         await FlutterCallkitIncoming.showCallkitIncoming(callConfig);
-        });
-        }else{
-          print('socket is still connecting');
-        }
-     });
-    
- await  CallService().requestPermissions();
-await  CallService().joinCall(widget.channelName);
-  }
-  */
-@override
-  void initState( ) {
-     super.initState();
-  CallService().initializeCall(widget.channelName);
+  @override
+  void initState() {
+    super.initState();
+   SocketService.connect(myUserId: FirebaseAuth.instance.currentUser!.uid);
+    log('[AudioCallScreen] initState: Initializing audio call for callId=${widget.callId}');
+    _initializeAudioCall();
   }
 
+  /// Initialize audio call with error handling
+  Future<void> _initializeAudioCall() async {
+    if (_isInitializing) {
+      log('[AudioCallScreen] Audio call initialization already in progress');
+      return;
+    }
+
+    setState(() {
+      _isInitializing = true;
+      _initializationError = null;
+    });
+
+    try {
+      log('[AudioCallScreen] Initializing Stream client for audio call');
+
+      // Initialize AudioManager (which initializes StreamManager)
+      await AudioManager.instance.init();
+
+      log('[AudioCallScreen] Creating audio call with callId: ${widget.callId}');
+
+      // Create audio call
+      final call = await AudioManager.instance.createAudioCall(
+        callId: widget.callId,
+        memberIds: widget.memberIds,
+      );
+
+      log('[AudioCallScreen] Audio call created successfully');
+
+      // Navigate to call screen
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => StreamCallContainer(
+              call: call,
+              callContentWidgetBuilder: (context, call) {
+                return _AudioOnlyCallContent(
+                  call: call,
+                  remoteUserName: widget.remoteUserName,
+                );
+              },
+            ),
+          ),
+        );
+      }
+    } on TimeoutException catch (e) {
+      log('[AudioCallScreen] ✗ Timeout during audio call initialization: $e');
+      _handleInitializationError('Connection timeout. Please check your network and try again.');
+    } catch (e, stackTrace) {
+      log('[AudioCallScreen] ✗ Error during audio call initialization: $e\nStackTrace: $stackTrace');
+      _handleInitializationError('Failed to initialize audio call: $e');
+    }
+  }
+
+  /// Handle initialization errors
+  void _handleInitializationError(String errorMessage) {
+    log('[AudioCallScreen] Handling error: $errorMessage');
+
+    setState(() {
+      _isInitializing = false;
+      _initializationError = errorMessage;
+    });
+
+    // Show error dialog
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Audio Call Error'),
+          content: Text(_initializationError ?? 'An unexpected error occurred'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Close dialog
+                Navigator.pop(context); // Exit call screen
+              },
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _initializeAudioCall(); // Retry
+              },
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    log('[AudioCallScreen] dispose: Cleaning up audio call');
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isInitializing) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF1A1A1A),
+        body: SafeArea(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const CircleAvatar(
+                  radius: 60,
+                  backgroundColor: Colors.grey,
+                  child: Icon(
+                    Icons.person,
+                    color: Colors.white,
+                    size: 80,
+                  ),
+                ),
+                const SizedBox(height: 30),
+                const Text(
+                  'Initializing audio call...',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const SizedBox(
+                  width: 50,
+                  height: 50,
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                    strokeWidth: 4,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Connecting...',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (_initializationError != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF1A1A1A),
+        body: SafeArea(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.error,
+                  color: Colors.red,
+                  size: 64,
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  _initializationError!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.red,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 30),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Go Back'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Show loading while initializing
+    return Scaffold(
+      backgroundColor: const Color(0xFF1A1A1A),
+      body: const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+}
+
+/// Custom audio-only call UI that hides video and shows only audio controls
+class _AudioOnlyCallContent extends StatelessWidget {
+  final Call call;
+  final String remoteUserName;
+
+  const _AudioOnlyCallContent({
+    required this.call,
+    required this.remoteUserName,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor:const Color(0xFF1A1A1A), 
-      body: SafeArea(child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          CircleAvatar(
-            radius: 60,
-            backgroundColor: Colors.grey,
-            child: Icon(
-              Icons.person,
-              color: Colors.white,
-              size: 80,
+      backgroundColor: const Color(0xFF1A1A1A),
+      body: SafeArea(
+        child: Stack(
+          children: [
+            // Audio-only UI (no video)
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const CircleAvatar(
+                    radius: 60,
+                    backgroundColor: Colors.grey,
+                    child: Icon(
+                      Icons.person,
+                      color: Colors.white,
+                      size: 80,
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  Text(
+                    remoteUserName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Connected',
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          SizedBox(height: 20,),
-          Text(widget.remoteUserName,
-          style: const TextStyle(
-            color: Colors.white,fontSize: 24,fontWeight: FontWeight.bold
-          ),
-          ),
-          Text('Connecting',style: TextStyle(
-            color: Colors.white70,
-            fontSize: 16
-          ),),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              CallButton(
-                icon:_isMuted ?Icons.mic_off :Icons.mic,
-                color:_isMuted ? Colors.white :Colors.white24,
-                iconColor: _isMuted ? Colors.black : Colors.white,
-                onPressed:(){
-                  setState(() {
-                    _isMuted=! _isMuted;
-                    
-                  });
-                }
+            // Audio controls at bottom
+            Positioned(
+              bottom: 30,
+              left: 0,
+              right: 0,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    // Microphone toggle
+                    FloatingActionButton(
+                      heroTag: 'mic',
+                      backgroundColor: Colors.white,
+                      onPressed: () {
+                        call.setMicrophoneEnabled(enabled: true);
+                      },
+                      child: const Icon(
+                        Icons.mic,
+                        color: Colors.black,
+                      ),
+                    ),
+                    // End call
+                    FloatingActionButton(
+                      heroTag: 'EndCall',
+                      backgroundColor: Colors.red,
+                      onPressed: () async {
+                        await AudioManager.instance.leaveCall();
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                        }
+                      },
+                      child: const Icon(
+                        Icons.call_end,
+                        color: Colors.white,
+                      ),
+                    ),
+                    // Speaker toggle
+                    FloatingActionButton(
+                      heroTag: 'speaker',
+                      backgroundColor: Colors.white,
+                      onPressed: () {
+                        log('[AudioCall] Speaker toggled');
+                      },
+                      child: const Icon(
+                        Icons.volume_up,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-                CallButton(
-                icon:Icons.call_end,
-                color:Colors.red,
-                iconColor: Colors.white,size:70,
-                onPressed:(){
-                  Navigator.pop(context);
-                }
-              ),
-                CallButton(
-                icon:_isSpeaker ?Icons.volume_up :Icons.volume_down,
-                color:_isSpeaker ? Colors.white :Colors.white24,
-                iconColor: _isSpeaker ? Colors.black : Colors.white,
-                onPressed:(){
-                  setState(() {
-                    _isSpeaker=! _isSpeaker;
-                  });
-                }
-              ),
-            ],
-          )
-        
-        ],
-      )),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -48,4 +48,13 @@ void startCall(String callId,List<String>memberIds)async{
  await call.getOrCreate(memberIds: memberIds);
  
 }
+/*
+void createAudioCall(String callId,List<String>memberIds)async{
+ final call = await   streamClient.makeCall(callType: StreamCallType.defaultType(), id: callId);
+ await call.getOrCreate(memberIds: memberIds);
+ await call.setCameraEnabled(enabled:false);
+ await call.setMicrophoneEnabled(enabled:true);
+ return call ;
+}
+*/
 }

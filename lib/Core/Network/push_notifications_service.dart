@@ -20,7 +20,7 @@ handleForegroundMessage();
 static Future<void> handleBackgroundMessage(RemoteMessage message)async{
  await Firebase.initializeApp();
 if(message.data['type']=='call'){
-  await CallService().showIncomingCall(message.data);
+//  await CallService().showIncomingCall(message.data);
 }
  log(message.notification?.title ?? 'null');
 }

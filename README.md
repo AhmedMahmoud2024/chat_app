@@ -8,8 +8,8 @@ A Simple Chat app with Firebase .
 3-chat Screen 
 4- push notifications :using firebase_cloud & flutter_local_notification packages
 5- User Story :add user story using cloud Firestore & imgbbb & http package
-6-voice calls between users using flutter_callkit package
-7-using node js to establish our server via web socket to be good
-8-conncting with mongodb 
+6-using node js to establish our server via web socket to be good
+7-conncting with mongodb 
+8-stream.io sdk integration for best audio & video stream calls instead of Agora
 ## On Working Features:
-9-stream.io sdk integration
+

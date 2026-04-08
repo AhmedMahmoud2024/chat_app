@@ -8,6 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class ChatScreen extends StatefulWidget {
    ChatScreen({required this.receiverName, required this.receiverId});
@@ -71,6 +72,17 @@ SocketService.socket.emit('call-user',{
   );
  }
 
+Future<void> startVideoCallAction()async{
+  Map<Permission,PermissionStatus>statuses=await [
+Permission.camera,
+Permission.microphone,
+Permission.bluetooth
+  ].request();
+ // if(statuses[Permission.camera]!.isGranted && statuses[Permission.microphone]!.isGranted){
+
+ // }
+}
+
   @override
   Widget build(BuildContext context) {
   
@@ -81,9 +93,12 @@ SocketService.socket.emit('call-user',{
           IconButton(
              icon:Icon(Icons.phone) ,
             onPressed: (){
-      callUser(widget.receiverId);
+     startVideoCallAction();
+     // callUser(widget.receiverId);
+ //     Permission.microphone.request();
         Navigator.push(context,MaterialPageRoute(builder: (context)=>AudioCallScreen(
-          channelName: "test-room",
+          callId: 'audio-${widget.receiverId}-${DateTime.now().millisecondsSinceEpoch}',
+          memberIds: [widget.receiverId],
            remoteUserName: 
            widget.receiverName)));
           },
@@ -91,6 +106,7 @@ SocketService.socket.emit('call-user',{
           IconButton(
              icon:Icon(Icons.video_call) ,
             onPressed: (){
+              startVideoCallAction();
         Navigator.push(context,MaterialPageRoute(builder: (context)=>
         VideoCalls(
           callId: 'video-${widget.receiverId}-${DateTime.now().millisecondsSinceEpoch}',
