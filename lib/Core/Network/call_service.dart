@@ -24,14 +24,14 @@ Future<void> sendCallNatification(
   String callerName,
   String channelName
 )async{
- const String serverKey='eMqIWQbGTTmEYI95i-OLoj:APA91bEK_obzYN1VCGNhd2LF87GbXA8EjQuxRfjmkzCX-bkXfKHBVFWdwnWfOQUyxLMUqTRL_4AdvGIIaUuQTPTWv6LEdkiEsQ5TFGMuwej7BExNIPh611w';
+
  String uri='https://fcm.googleapis.com/fcm/send';
  try{
  await http.post(
   Uri.parse(uri),
   headers: <String,String>{
    'Content-Type':'application/json',
-   'Authorization':'key=$serverKey'
+   'Authorization':'key=${String.fromEnvironment('SERVER_KEY')}'
   },
   body: jsonEncode(
     <String,dynamic>{
@@ -193,20 +193,102 @@ Future<void> initializeCall(String channelId) async {
 }
 
 
-Future<List<CallLogModel>> fetchLogs(String myUser)async{
-  final uri = "http://192.168.0.105:3000/call-history/$myUser";
-  print('calling URL: $uri');
-final response = await http.get(Uri.parse(
-uri
-  ));
-  print('Response body: ${response.body}');
-if(response.statusCode==200){
-  List data = json.decode(response.body);
-  return data.map((log)=>
-    CallLogModel.fromJson(log)
-  ).toList();
+/// Fetch call logs from MongoDB via Node.js backend
+/// Supports pagination with page and limit parameters
+Future<List<CallLogModel>> fetchLogs(String myUser, {int page = 1, int limit = 20}) async {
+  try {
+    final uri = "http://192.168.0.106:3000/api/calls/history/$myUser?page=$page&limit=$limit";
+    log('[CallService] Fetching call logs from: $uri');
+    
+    final response = await http.get(Uri.parse(uri));
+    
+    if (response.statusCode == 200) {
+      final jsonData = jsonDecode(response.body);
+      final List<dynamic> callsList = jsonData['data'] ?? [];
+      
+      log('[CallService] Successfully fetched ${callsList.length} call logs');
+      
+      return callsList.map((log) => CallLogModel.fromJson(log)).toList();
+    } else {
+      log('[CallService] Error fetching logs - Status: ${response.statusCode}');
+      return [];
+    }
+  } catch (e) {
+    log('[CallService] Error fetching call logs: $e');
+    return [];
+  }
 }
-return [];
+
+/// Save a new call log to MongoDB
+Future<bool> saveCallLog({
+  required String callId,
+  required String callerId,
+  required String calleeId,
+  required String callerName,
+  required String calleeName,
+  String callerAvatar = '',
+  String calleeAvatar = '',
+  required String status, // 'missed', 'completed', 'declined'
+  String callType = 'audio', // 'audio' or 'video'
+  required int duration, // in seconds
+}) async {
+  try {
+    final uri = "http://192.168.0.106:3000/api/calls/save";
+    
+    final body = jsonEncode({
+      'callId': callId,
+      'callerId': callerId,
+      'calleeId': calleeId,
+      'callerName': callerName,
+      'calleeName': calleeName,
+      'callerAvatar': callerAvatar,
+      'calleeAvatar': calleeAvatar,
+      'status': status,
+      'callType': callType,
+      'duration': duration,
+    });
+    
+    log('[CallService] Saving call log to MongoDB: $body');
+    
+    final response = await http.post(
+      Uri.parse(uri),
+      headers: {'Content-Type': 'application/json'},
+      body: body,
+    );
+    
+    if (response.statusCode == 201) {
+      log('[CallService] Call log saved successfully');
+      return true;
+    } else {
+      log('[CallService] Error saving call log - Status: ${response.statusCode}, Body: ${response.body}');
+      return false;
+    }
+  } catch (e) {
+    log('[CallService] Error saving call log: $e');
+    return false;
+  }
+}
+
+/// Delete a call log from MongoDB
+Future<bool> deleteCallLog(String callId) async {
+  try {
+    final uri = "http://192.168.0.106:3000/api/calls/$callId";
+    
+    log('[CallService] Deleting call log: $callId');
+    
+    final response = await http.delete(Uri.parse(uri));
+    
+    if (response.statusCode == 200) {
+      log('[CallService] Call log deleted successfully');
+      return true;
+    } else {
+      log('[CallService] Error deleting call log - Status: ${response.statusCode}');
+      return false;
+    }
+  } catch (e) {
+    log('[CallService] Error deleting call log: $e');
+    return false;
+  }
 }  
 
 /// Cleanup all listeners to prevent memory leaks

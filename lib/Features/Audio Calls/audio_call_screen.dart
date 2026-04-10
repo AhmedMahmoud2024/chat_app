@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 
+import 'package:chat_app/Core/Network/call_service.dart';
 import 'package:chat_app/Core/Network/firebase_auth_service.dart';
 import 'package:chat_app/Core/Network/socket_service.dart';
 import 'package:chat_app/Features/Audio_Calls/managers/audio_manager.dart';
@@ -75,6 +76,7 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
                 return _AudioOnlyCallContent(
                   call: call,
                   remoteUserName: widget.remoteUserName,
+                  callId: widget.callId,
                 );
               },
             ),
@@ -230,14 +232,87 @@ class _AudioCallScreenState extends State<AudioCallScreen> {
 }
 
 /// Custom audio-only call UI that hides video and shows only audio controls
-class _AudioOnlyCallContent extends StatelessWidget {
+class _AudioOnlyCallContent extends StatefulWidget {
   final Call call;
   final String remoteUserName;
+  final String callId;
 
   const _AudioOnlyCallContent({
     required this.call,
     required this.remoteUserName,
+    required this.callId,
   });
+
+  @override
+  State<_AudioOnlyCallContent> createState() => _AudioOnlyCallContentState();
+}
+
+class _AudioOnlyCallContentState extends State<_AudioOnlyCallContent> {
+  late DateTime _callStartTime;
+  int _elapsedSeconds = 0;
+  late Timer _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _callStartTime = DateTime.now();
+    
+    // Start timer to update elapsed time
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _elapsedSeconds = DateTime.now().difference(_callStartTime).inSeconds;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  /// Format elapsed time as hh:mm:ss
+  String _formatElapsedTime(int seconds) {
+    int hours = seconds ~/ 3600;
+    int minutes = (seconds % 3600) ~/ 60;
+    int secs = seconds % 60;
+    
+    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+  }
+
+  /// Save call log when ending the call
+  Future<void> _endCallAndSaveLog() async {
+    final callDuration = DateTime.now().difference(_callStartTime).inSeconds;
+    final currentUser = FirebaseAuth.instance.currentUser;
+    
+    if (currentUser != null) {
+      // Determine call status (for now, assume completed)
+      final status = 'completed'; // Could be 'missed' or 'declined' based on logic
+      
+      // Save to MongoDB via Node.js backend
+      final success = await CallService().saveCallLog(
+        callId: widget.callId,
+        callerId: currentUser.uid,
+        calleeId: 'remote_user_id', // TODO: Get actual remote user ID
+        callerName: currentUser.displayName ?? 'Unknown',
+        calleeName: widget.remoteUserName,
+        status: status,
+        callType: 'audio',
+        duration: callDuration,
+      );
+      
+      log('[AudioCallScreen] Call log ${success ? 'saved' : 'failed to save'}');
+    }
+    
+    // Leave the call
+    await AudioManager.instance.leaveCall();
+    
+    if (context.mounted) {
+      Navigator.pop(context);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -262,7 +337,7 @@ class _AudioOnlyCallContent extends StatelessWidget {
                   ),
                   const SizedBox(height: 30),
                   Text(
-                    remoteUserName,
+                    widget.remoteUserName,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 24,
@@ -275,6 +350,16 @@ class _AudioOnlyCallContent extends StatelessWidget {
                     style: TextStyle(
                       color: Colors.green,
                       fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Display elapsed time
+                  Text(
+                    _formatElapsedTime(_elapsedSeconds),
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 18,
+                      fontFamily: 'monospace',
                     ),
                   ),
                 ],
@@ -295,7 +380,7 @@ class _AudioOnlyCallContent extends StatelessWidget {
                       heroTag: 'mic',
                       backgroundColor: Colors.white,
                       onPressed: () {
-                        call.setMicrophoneEnabled(enabled: true);
+                        widget.call.setMicrophoneEnabled(enabled: true);
                       },
                       child: const Icon(
                         Icons.mic,
@@ -306,12 +391,7 @@ class _AudioOnlyCallContent extends StatelessWidget {
                     FloatingActionButton(
                       heroTag: 'EndCall',
                       backgroundColor: Colors.red,
-                      onPressed: () async {
-                        await AudioManager.instance.leaveCall();
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                        }
-                      },
+                      onPressed: _endCallAndSaveLog,
                       child: const Icon(
                         Icons.call_end,
                         color: Colors.white,
