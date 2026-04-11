@@ -1,7 +1,7 @@
 class CallLogModel {
   final String callId;
   final String callerId;
-  final String receiverId;
+  final String calleeId;//
   final String callerName;
   final String calleeName;
   final String callerAvatar;
@@ -14,7 +14,7 @@ class CallLogModel {
   CallLogModel({
     required this.callId,
     required this.callerId,
-    required this.receiverId,
+    required this.calleeId,
     required this.calleeName,
     required this.callerAvatar,
     required this.calleeAvatar,
@@ -28,7 +28,7 @@ class CallLogModel {
     return CallLogModel(
       callId: json['callId'] ?? '',
       callerId: json['callerId'] ?? '',
-      receiverId: json['receiverId'] ?? '',
+      calleeId: json['receiverId'] ?? '',
       callerName: json['callerName'] ?? '',
       calleeName: json['calleeName'] ?? '',
       callerAvatar: json['callerAvatar'] ?? '',
@@ -44,7 +44,9 @@ class CallLogModel {
 
   Map<String, dynamic> toJson() {
     return {
-      'callId': callId,
+      'callId': callId,   
+      'callerId': callerId,
+      'receiverId':calleeId,
       'callerName': callerName,
       'calleeName': calleeName,
       'callerAvatar': callerAvatar,
@@ -52,7 +54,7 @@ class CallLogModel {
       'status': status,
       'callType': callType,
       'duration': duration,
-      'startTime': startTime.toIso8601String(),
+      'startTime': startTime.toIso8601String() ,
     };
   }
 }

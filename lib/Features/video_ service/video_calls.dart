@@ -70,7 +70,7 @@ class _VideoCallsState extends State<VideoCalls> {
 
       // Create and join call
       final call = StreamManager.streamClient.makeCall(
-        callType: StreamCallType.defaultType(),
+        callType: StreamCallType.liveStream(),
         id: widget.callId,
       );
        

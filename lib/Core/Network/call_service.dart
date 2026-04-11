@@ -235,10 +235,12 @@ Future<bool> saveCallLog({
   try {
     final uri = "http://192.168.0.106:3000/api/calls/save";
     
-    final body = jsonEncode({
+    final body = jsonEncode(
+      
+      {
       'callId': callId,
       'callerId': callerId,
-      'calleeId': calleeId,
+      'receiverId': calleeId,
       'callerName': callerName,
       'calleeName': calleeName,
       'callerAvatar': callerAvatar,
@@ -246,7 +248,9 @@ Future<bool> saveCallLog({
       'status': status,
       'callType': callType,
       'duration': duration,
-    });
+      'startTime':DateTime.now().toIso8601String()
+    }
+    );
     
     log('[CallService] Saving call log to MongoDB: $body');
     
