@@ -2,7 +2,8 @@
 import 'package:chat_app/Core/Network/firebase_auth_service.dart';
 import 'package:chat_app/Core/Network/socket_service.dart';
 import 'package:chat_app/Features/Audio%20Calls/audio_call_screen.dart';
-import 'package:chat_app/Features/recents%20Screen/presentation/recents_screen.dart';
+//import 'package:chat_app/Features/recents%20Screen/presentation/recents_screen.dart';
+import 'package:chat_app/Features/recents%20Screen/presentation/screens/recents_screen_clean.dart';
 import 'package:chat_app/Features/video_%20service/video_calls.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -119,9 +120,12 @@ Permission.bluetooth
             IconButton(
              icon:Icon(Icons.history) ,
             onPressed: (){
-        Navigator.push(context,MaterialPageRoute(builder: (context)=>RecentsScreen(
-          myUser: currentUserId!
-           )
+        Navigator.push(context,MaterialPageRoute(builder: (context)=>
+      RecentsScreenClean()
+      //  RecentsScreen(
+         // myUser: currentUserId!
+        //   )
+           //
            ));
           },
           ),

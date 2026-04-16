@@ -1,0 +1,1141 @@
+================================================================================
+  CLEAN CODE REFACTORING GUIDE: BLoC Pattern Implementation
+  For: Recents Screen, Chat Screen, Video Calls, Audio Calls
+================================================================================
+
+TIME ESTIMATE: 10-15 hours total
+DIFFICULTY: Medium to Advanced
+PATTERN: Clean Architecture + BLoC + GetIt Dependency Injection
+
+================================================================================
+OVERVIEW: CURRENT STATE vs TARGET STATE
+================================================================================
+
+CURRENT STATE (Before):
+  Screens → Direct Firebase Calls + setState
+  ↓
+  No separation of concerns
+  No testability
+  Business logic mixed with UI
+  Hard to maintain and scale
+
+TARGET STATE (After):
+  UI Layer (Screens/Widgets)
+      ↓ uses BLoC
+  BLoC Layer (State Management)
+      ↓ calls
+  Use Cases Layer (Business Logic)
+      ↓ uses
+  Repository Layer (Data Abstraction)
+      ↓ depends on
+  Data Sources (Firebase, API, Local)
+
+================================================================================
+STEP 1: FOUNDATION SETUP (1-2 hours)
+================================================================================
+
+1.1 ADD DEPENDENCIES
+   File: pubspec.yaml
+   
+   Add under dependencies:
+   - get_it: ^7.6.0              (dependency injection)
+   - dartz: ^0.10.1              (Either for functional error handling)
+   - equatable: ^2.0.5           (value equality for BLoC events/states)
+   
+   Add under dev_dependencies:
+   - mocktail: ^1.0.3            (mocking for tests)
+   
+   Then run: flutter pub get
+
+1.2 CREATE BASE CLASSES
+   
+   a) lib/Core/Utils/failures.dart
+      - Base Failure class
+      - NetworkFailure, FirebaseFailure, ServerFailure, ValidationFailure
+      - Purpose: Standardized error handling instead of exceptions
+      
+   b) lib/Core/Utils/usecase_base.dart
+      - Abstract UseCase<Type, Params> base class
+      - Purpose: All business logic follows this pattern
+      
+   c) lib/Core/Presentation/bloc/app_bloc_observer.dart
+      - BLoC observer for debugging
+      - Logs all events, state changes, errors
+      - Add to main(): Bloc.observer = AppBlocObserver();
+
+1.3 CREATE ABSTRACT REPOSITORIES
+   File: lib/Core/Domain/Repositories/
+   
+   Create these abstracts:
+   - auth_repository.dart          (auth operations)
+   - call_repository.dart          (call log operations)
+   - video_call_repository.dart    (video call operations)
+   - audio_call_repository.dart    (audio call operations)
+   
+   Purpose: Define contracts that data layer implements
+
+1.4 CREATE SERVICE LOCATOR
+   File: lib/Core/service_locator.dart
+   
+   - Initialize GetIt instance
+   - Function setupServiceLocator() - called in main()
+   - Register all repositories, use cases, BLoCs
+
+1.5 UPDATE MAIN.DAR
+   Add before runApp():
+   - await setupServiceLocator();
+   - Bloc.observer = AppBlobObserver();
+
+Checkpoint: flutter analyze should show no errors
+
+================================================================================
+STEP 2: REFACTOR RECENTS SCREEN (2-3 hours) - THIS IS YOUR TEMPLATE!
+================================================================================
+
+FILE STRUCTURE AFTER REFACTORING:
+lib/Features/recents Screen/
+├── Domain/
+│   ├── Entities/
+│   │   └── call_log_entity.dart
+│   ├── Repositories/
+│   │   └── recents_repository.dart (abstract)
+│   └── UseCases/
+│       ├── get_call_logs_usecase.dart
+│       ├── delete_call_log_usecase.dart
+│       └── clear_all_logs_usecase.dart
+├── Data/
+│   ├── Models/
+│   │   └── call_log_model.dart
+│   ├── DataSources/
+│   │   ├── remote_recents_data_source.dart (Firebase)
+│   │   └── local_recents_data_source.dart (SQLite - optional)
+│   └── Repositories/
+│       └── recents_repository_impl.dart
+└── Presentation/
+    ├── BLoC/
+    │   ├── recents_event.dart
+    │   ├── recents_state.dart
+    │   └── recents_bloc.dart
+    ├── Screens/
+    │   └── recents_screen.dart (refactored)
+    └── Widgets/
+        ├── call_log_item_widget.dart
+        ├── empty_recents_widget.dart
+        └── error_recents_widget.dart
+
+---
+
+2.1 CREATE DOMAIN LAYER
+
+2.1.1 Entity: call_log_entity.dart
+  class CallLogEntity {
+    final String id;
+    final String callerId;
+    final String receiverId;
+    final String callerName;
+    final String receiverName;
+    final String callType;        // 'audio' or 'video'
+    final DateTime startTime;
+    final DateTime? endTime;
+    final int? duration;          // in seconds
+    final String status;          // 'completed', 'missed', 'declined'
+  }
+  
+  Why entity?
+  - Pure Dart (no Firebase imports)
+  - Used everywhere: domain, data, presentation
+  - Represents the "thing" your feature cares about
+
+2.1.2 Abstract Repository: recents_repository.dart
+  abstract class RecentsRepository {
+    Future<Either<Failure, List<CallLogEntity>>> getCallLogs(String userId);
+    Future<Either<Failure, bool>> deleteCallLog(String callId);
+    Future<Either<Failure, bool>> clearAllLogs(String userId);
+  }
+  
+  Why abstract?
+  - Data layer implements this
+  - Can swap implementations (Firebase → REST → Mock)
+  - Easy to test with mock repository
+
+2.1.3 Use Cases: 3 files
+  
+  get_call_logs_usecase.dart
+    class GetCallLogsUseCase extends UseCase<List<CallLogEntity>, GetCallLogsParams> {
+      final RecentsRepository repository;
+      
+      @override
+      Future<Either<Failure, List<CallLogEntity>>> execute(GetCallLogsParams params) {
+        return repository.getCallLogs(params.userId);
+      }
+    }
+  
+  delete_call_log_usecase.dart
+    class DeleteCallLogUseCase extends UseCase<bool, DeleteCallLogParams> {
+      ...same pattern...
+    }
+  
+  clear_all_logs_usecase.dart
+    class ClearAllLogsUseCase extends UseCase<bool, ClearAllLogsParams> {
+      ...same pattern...
+    }
+  
+  Why use cases?
+  - Encapsulate business logic
+  - One use case = one action
+  - Testable in isolation
+  - Reusable
+
+---
+
+2.2 CREATE DATA LAYER
+
+2.2.1 Model: call_log_model.dart
+  class CallLogModel extends CallLogEntity {
+    CallLogModel({...});
+    
+    factory CallLogModel.fromJson(Map<String, dynamic> json) {
+      // Parse JSON from Firestore
+      return CallLogModel(...);
+    }
+    
+    Map<String, dynamic> toJson() => {...};
+    
+    CallLogEntity toEntity() => CallLogEntity(...);
+  }
+  
+  Why separate from entity?
+  - Entity: pure domain
+  - Model: has JSON serialization
+  - Maps JSON ↔ Entity ↔ UI
+  
+  BUG FIX NOTE: Current call_log_model.dart line 34-38
+    Uses 'time' field instead of 'startTime'
+    Fix during refactoring
+
+2.2.2 Remote Data Source: remote_recents_data_source.dart
+  abstract class RemoteRecentsDataSource {
+    Future<List<CallLogModel>> getCallLogs(String userId);
+    Future<void> deleteCallLog(String callId);
+    Future<void> clearAllLogs(String userId);
+  }
+  
+  class FirebaseRecentsDataSource implements RemoteRecentsDataSource {
+    final FirebaseFirestore _firestore;
+    
+    @override
+    Future<List<CallLogModel>> getCallLogs(String userId) async {
+      try {
+        final snapshot = await _firestore
+            .collection('calls')
+            .where('userId', isEqualTo: userId)
+            .get();
+        
+        return snapshot.docs
+            .map((doc) => CallLogModel.fromJson(doc.data()))
+            .toList();
+      } on FirebaseException catch (e) {
+        throw FirebaseFailure(e.message ?? 'Unknown error');
+      }
+    }
+    // ... deleteCallLog, clearAllLogs
+  }
+  
+  Why data source?
+  - Separates WHERE data comes from (Firebase, API, DB)
+  - Can have multiple: FirebaseDataSource, RestApiDataSource, MockDataSource
+  - Makes testing easy (mock data source)
+
+2.2.3 Local Data Source: local_recents_data_source.dart (optional, for caching)
+  abstract class LocalRecentsDataSource {
+    Future<List<CallLogModel>> getCallLogs(String userId);
+    Future<void> saveCallLogs(List<CallLogModel> logs);
+    Future<void> clearCallLogs(String userId);
+  }
+  
+  class SqfliteRecentsDataSource implements LocalRecentsDataSource {
+    // SQLite implementation for offline caching
+  }
+
+2.2.4 Repository Implementation: recents_repository_impl.dart
+  class RecentsRepositoryImpl implements RecentsRepository {
+    final RemoteRecentsDataSource remoteDataSource;
+    final LocalRecentsDataSource? localDataSource;
+    
+    @override
+    Future<Either<Failure, List<CallLogEntity>>> getCallLogs(String userId) async {
+      try {
+        // Try remote first
+        final models = await remoteDataSource.getCallLogs(userId);
+        
+        // Cache locally
+        if (localDataSource != null) {
+          await localDataSource!.saveCallLogs(models);
+        }
+        
+        // Convert models to entities
+        final entities = models.map((m) => m.toEntity()).toList();
+        return Right(entities);
+        
+      } on NetworkException catch (e) {
+        return Left(NetworkFailure('No internet: ${e.message}'));
+      } on FirebaseException catch (e) {
+        return Left(FirebaseFailure('Firebase error: ${e.message}'));
+      } catch (e) {
+        return Left(UnknownFailure('Unexpected error: $e'));
+      }
+    }
+    
+    @override
+    Future<Either<Failure, bool>> deleteCallLog(String callId) async {
+      try {
+        await remoteDataSource.deleteCallLog(callId);
+        return const Right(true);
+      } on FirebaseException catch (e) {
+        return Left(FirebaseFailure(e.message ?? 'Delete failed'));
+      }
+    }
+  }
+  
+  Why?
+  - Mediator between domain and data
+  - Catches exceptions
+  - Wraps in Either<Failure, T>
+  - Can implement caching logic
+
+---
+
+2.3 CREATE BLoC LAYER
+
+2.3.1 Events: recents_event.dart
+  abstract class RecentsEvent extends Equatable {
+    const RecentsEvent();
+    @override
+    List<Object?> get props => [];
+  }
+  
+  class FetchRecentsEvent extends RecentsEvent {
+    final String userId;
+    const FetchRecentsEvent(this.userId);
+    @override
+    List<Object?> get props => [userId];
+  }
+  
+  class DeleteCallLogEvent extends RecentsEvent {
+    final String callId;
+    const DeleteCallLogEvent(this.callId);
+    @override
+    List<Object?> get props => [callId];
+  }
+  
+  class ClearAllLogsEvent extends RecentsEvent {
+    final String userId;
+    const ClearAllLogsEvent(this.userId);
+    @override
+    List<Object?> get props => [userId];
+  }
+  
+  class RefreshRecentsEvent extends RecentsEvent {
+    final String userId;
+    const RefreshRecentsEvent(this.userId);
+    @override
+    List<Object?> get props => [userId];
+  }
+  
+  Why events?
+  - UI triggers events: context.read<RecentsBloc>().add(FetchRecentsEvent(userId))
+  - BLoC reacts to events
+  - Makes flow clear: Event → Handler → State emission
+  - Equatable prevents duplicate events
+
+2.3.2 States: recents_state.dart
+  abstract class RecentsState extends Equatable {
+    const RecentsState();
+    @override
+    List<Object?> get props => [];
+  }
+  
+  class RecentsInitial extends RecentsState {
+    const RecentsInitial();
+  }
+  
+  class RecentsLoading extends RecentsState {
+    const RecentsLoading();
+  }
+  
+  class RecentsLoaded extends RecentsState {
+    final List<CallLogEntity> callLogs;
+    const RecentsLoaded(this.callLogs);
+    @override
+    List<Object?> get props => [callLogs];
+  }
+  
+  class RecentsEmpty extends RecentsState {
+    const RecentsEmpty();
+  }
+  
+  class RecentsError extends RecentsState {
+    final String message;
+    const RecentsError(this.message);
+    @override
+    List<Object?> get props => [message];
+  }
+  
+  class CallLogDeletedSuccess extends RecentsState {
+    final String callId;
+    const CallLogDeletedSuccess(this.callId);
+    @override
+    List<Object?> get props => [callId];
+  }
+  
+  Why states?
+  - UI renders based on state
+  - BLoC emits new state on event
+  - Equatable prevents unnecessary rebuilds
+
+2.3.3 BLoC: recents_bloc.dart
+  class RecentsBloc extends Bloc<RecentsEvent, RecentsState> {
+    final GetCallLogsUseCase getCallLogsUseCase;
+    final DeleteCallLogUseCase deleteCallLogUseCase;
+    final ClearAllLogsUseCase clearAllLogsUseCase;
+    
+    RecentsBloc({
+      required this.getCallLogsUseCase,
+      required this.deleteCallLogUseCase,
+      required this.clearAllLogsUseCase,
+    }) : super(const RecentsInitial()) {
+      on<FetchRecentsEvent>(_onFetchRecents);
+      on<DeleteCallLogEvent>(_onDeleteCallLog);
+      on<ClearAllLogsEvent>(_onClearAllLogs);
+      on<RefreshRecentsEvent>(_onRefreshRecents);
+    }
+    
+    Future<void> _onFetchRecents(
+      FetchRecentsEvent event,
+      Emitter<RecentsState> emit,
+    ) async {
+      emit(const RecentsLoading());
+      
+      final result = await getCallLogsUseCase.execute(
+        GetCallLogsParams(userId: event.userId),
+      );
+      
+      result.fold(
+        (failure) => emit(RecentsError(failure.message)),
+        (logs) => logs.isEmpty
+            ? emit(const RecentsEmpty())
+            : emit(RecentsLoaded(logs)),
+      );
+    }
+    
+    Future<void> _onDeleteCallLog(
+      DeleteCallLogEvent event,
+      Emitter<RecentsState> emit,
+    ) async {
+      final result = await deleteCallLogUseCase.execute(
+        DeleteCallLogParams(callId: event.callId),
+      );
+      
+      result.fold(
+        (failure) => emit(RecentsError(failure.message)),
+        (success) {
+          emit(CallLogDeletedSuccess(event.callId));
+          // Re-fetch list after delete
+          // add(FetchRecentsEvent(currentUserId));
+        },
+      );
+    }
+    
+    Future<void> _onClearAllLogs(
+      ClearAllLogsEvent event,
+      Emitter<RecentsState> emit,
+    ) async {
+      final result = await clearAllLogsUseCase.execute(
+        ClearAllLogsParams(userId: event.userId),
+      );
+      
+      result.fold(
+        (failure) => emit(RecentsError(failure.message)),
+        (success) => emit(const RecentsEmpty()),
+      );
+    }
+    
+    Future<void> _onRefreshRecents(
+      RefreshRecentsEvent event,
+      Emitter<RecentsState> emit,
+    ) async {
+      // Manual refresh by user
+      await _onFetchRecents(FetchRecentsEvent(event.userId), emit);
+    }
+  }
+  
+  Why BLoC?
+  - Centralized state management
+  - Separates business logic from UI
+  - Reactive: UI automatically updates
+  - Testable: test state transitions independently
+
+---
+
+2.4 CREATE PRESENTATION LAYER
+
+2.4.1 Refactored Screen: recents_screen.dart
+  
+  BEFORE (Current - StatefulWidget with setState):
+  
+    class RecentsScreen extends StatefulWidget {
+      @override
+      State<RecentsScreen> createState() => _RecentsScreenState();
+    }
+    
+    class _RecentsScreenState extends State<RecentsScreen> {
+      late List<CallLogModel> logs;
+      
+      @override
+      void initState() {
+        super.initState();
+        _loadLogs();
+      }
+      
+      Future<void> _loadLogs() async {
+        try {
+          final fetchedLogs = await CallService().fetchLogs(FirebaseAuth.instance.currentUser!.uid);
+          setState(() => logs = fetchedLogs);
+        } catch (e) {
+          print('Error: $e');
+        }
+      }
+      
+      @override
+      Widget build(BuildContext context) {
+        return Scaffold(
+          appBar: AppBar(title: const Text('Recents')),
+          body: ListView.builder(
+            itemCount: logs.length,
+            itemBuilder: (context, index) => ListTile(
+              title: Text(logs[index].callerName),
+              trailing: IconButton(
+                icon: const Icon(Icons.delete),
+                onPressed: () => _deleteLog(logs[index].id),
+              ),
+            ),
+          ),
+        );
+      }
+      
+      Future<void> _deleteLog(String id) async {
+        await CallService().deleteCallLog(id);
+        _loadLogs();
+      }
+    }
+  
+  AFTER (Refactored - StatelessWidget with BLoC):
+  
+    class RecentsScreen extends StatelessWidget {
+      final String userId;
+      
+      const RecentsScreen({required this.userId});
+      
+      @override
+      Widget build(BuildContext context) {
+        return BlocProvider(
+          create: (context) => RecentsBloc(
+            getCallLogsUseCase: getIt<GetCallLogsUseCase>(),
+            deleteCallLogUseCase: getIt<DeleteCallLogUseCase>(),
+            clearAllLogsUseCase: getIt<ClearAllLogsUseCase>(),
+          )..add(FetchRecentsEvent(userId)),
+          child: Scaffold(
+            appBar: AppBar(
+              title: const Text('Recents'),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.delete_sweep),
+                  onPressed: () {
+                    context.read<RecentsBloc>().add(ClearAllLogsEvent(userId));
+                  },
+                ),
+              ],
+            ),
+            body: BlocBuilder<RecentsBloc, RecentsState>(
+              builder: (context, state) {
+                if (state is RecentsLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                
+                if (state is RecentsLoaded) {
+                  return RefreshIndicator(
+                    onRefresh: () async {
+                      context.read<RecentsBloc>().add(RefreshRecentsEvent(userId));
+                    },
+                    child: ListView.builder(
+                      itemCount: state.callLogs.length,
+                      itemBuilder: (context, index) {
+                        return CallLogItemWidget(
+                          callLog: state.callLogs[index],
+                          onDelete: () {
+                            context.read<RecentsBloc>().add(
+                              DeleteCallLogEvent(state.callLogs[index].id),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  );
+                }
+                
+                if (state is RecentsEmpty) {
+                  return const EmptyRecentsWidget();
+                }
+                
+                if (state is RecentsError) {
+                  return ErrorRecentsWidget(
+                    message: state.message,
+                    onRetry: () {
+                      context.read<RecentsBloc>().add(FetchRecentsEvent(userId));
+                    },
+                  );
+                }
+                
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        );
+      }
+    }
+  
+  KEY CHANGES:
+  ✓ StatelessWidget (not StatefulWidget)
+  ✓ No setState()
+  ✓ No direct Firebase/HTTP calls
+  ✓ BLoC handles state management
+  ✓ UI just renders based on state
+  ✓ Events trigger actions: context.read<RecentsBloc>().add(...)
+  ✓ States mapped to UI: Loading → Spinner, Loaded → List, Error → ErrorWidget
+  ✓ Pull-to-refresh via RefreshIndicator
+
+2.4.2 Reusable Widgets: 3 files in Widgets/
+  
+  call_log_item_widget.dart
+    class CallLogItemWidget extends StatelessWidget {
+      final CallLogEntity callLog;
+      final VoidCallback onDelete;
+      
+      const CallLogItemWidget({
+        required this.callLog,
+        required this.onDelete,
+      });
+      
+      @override
+      Widget build(BuildContext context) {
+        final duration = callLog.duration != null
+            ? '${callLog.duration} sec'
+            : 'N/A';
+        
+        return ListTile(
+          leading: Icon(
+            callLog.callType == 'video' ? Icons.videocam : Icons.call,
+            color: Colors.blue,
+          ),
+          title: Text(callLog.callerName),
+          subtitle: Text(
+            '${callLog.callType.toUpperCase()} • $duration',
+          ),
+          trailing: IconButton(
+            icon: const Icon(Icons.delete, color: Colors.red),
+            onPressed: onDelete,
+          ),
+          onTap: () {
+            // Could navigate to call details
+          },
+        );
+      }
+    }
+  
+  empty_recents_widget.dart
+    class EmptyRecentsWidget extends StatelessWidget {
+      const EmptyRecentsWidget();
+      
+      @override
+      Widget build(BuildContext context) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.phone_disabled, size: 64, color: Colors.grey),
+              const SizedBox(height: 16),
+              const Text(
+                'No call history',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+  
+  error_recents_widget.dart
+    class ErrorRecentsWidget extends StatelessWidget {
+      final String message;
+      final VoidCallback onRetry;
+      
+      const ErrorRecentsWidget({
+        required this.message,
+        required this.onRetry,
+      });
+      
+      @override
+      Widget build(BuildContext context) {
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              Text(
+                'Error: $message',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.red),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: onRetry,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+  
+  WHY SEPARATE WIDGETS?
+  ✓ Reusable components
+  ✓ Easier to test
+  ✓ Cleaner screen code
+  ✓ Easier to maintain
+
+2.5 REGISTER IN SERVICE LOCATOR
+  File: lib/Core/service_locator.dart
+  
+  Add this code:
+  
+  // Firebase
+  getIt.registerSingleton<FirebaseFirestore>(FirebaseFirestore.instance);
+  
+  // Data Sources
+  getIt.registerSingleton<RemoteRecentsDataSource>(
+    FirebaseRecentsDataSource(getIt<FirebaseFirestore>()),
+  );
+  
+  getIt.registerSingleton<LocalRecentsDataSource>(
+    SqfliteRecentsDataSource(),
+  );
+  
+  // Repository
+  getIt.registerSingleton<RecentsRepository>(
+    RecentsRepositoryImpl(
+      remoteDataSource: getIt<RemoteRecentsDataSource>(),
+      localDataSource: getIt<LocalRecentsDataSource>(),
+    ),
+  );
+  
+  // Use Cases
+  getIt.registerSingleton(
+    GetCallLogsUseCase(getIt<RecentsRepository>()),
+  );
+  getIt.registerSingleton(
+    DeleteCallLogUseCase(getIt<RecentsRepository>()),
+  );
+  getIt.registerSingleton(
+    ClearAllLogsUseCase(getIt<RecentsRepository>()),
+  );
+  
+  // BLoC (factory = new instance per screen)
+  getIt.registerFactory(() => RecentsBloc(
+    getCallLogsUseCase: getIt<GetCallLogsUseCase>(),
+    deleteCallLogUseCase: getIt<DeleteCallLogUseCase>(),
+    clearAllLogsUseCase: getIt<ClearAllLogsUseCase>(),
+  ));
+
+2.6 TESTING
+  Create: test/features/recents/recents_bloc_test.dart
+  
+  void main() {
+    group('RecentsBloc', () {
+      late MockRecentsRepository mockRepository;
+      late RecentsBloc recentsBloc;
+      
+      setUp(() {
+        mockRepository = MockRecentsRepository();
+        recentsBloc = RecentsBloc(
+          getCallLogsUseCase: GetCallLogsUseCase(mockRepository),
+          deleteCallLogUseCase: DeleteCallLogUseCase(mockRepository),
+          clearAllLogsUseCase: ClearAllLogsUseCase(mockRepository),
+        );
+      });
+      
+      tearDown(() async {
+        await recentsBloc.close();
+      });
+      
+      test('emit RecentsLoading then RecentsLoaded', () async {
+        const testLogs = [
+          CallLogEntity(
+            id: '1',
+            callerId: 'user1',
+            receiverId: 'user2',
+            callerName: 'John',
+            receiverName: 'Jane',
+            callType: 'video',
+            startTime: DateTime.now(),
+            status: 'completed',
+          ),
+        ];
+        
+        when(mockRepository.getCallLogs(any))
+            .thenAnswer((_) async => const Right(testLogs));
+        
+        expect(
+          recentsBloc.stream,
+          emitsInOrder([
+            const RecentsLoading(),
+            RecentsLoaded(testLogs),
+          ]),
+        );
+        
+        recentsBloc.add(const FetchRecentsEvent('userId123'));
+      });
+      
+      test('emit RecentsError on failure', () async {
+        when(mockRepository.getCallLogs(any)).thenAnswer(
+          (_) async => Left(NetworkFailure('No internet')),
+        );
+        
+        expect(
+          recentsBloc.stream,
+          emitsInOrder([
+            const RecentsLoading(),
+            const RecentsError('No internet'),
+          ]),
+        );
+        
+        recentsBloc.add(const FetchRecentsEvent('userId123'));
+      });
+    });
+  }
+
+================================================================================
+STEP 3: REFACTOR CHAT SCREEN (1-2 hours)
+================================================================================
+
+FOLLOW EXACT PATTERN FROM RECENTS, just change:
+
+Domain:
+  - MessageEntity (instead of CallLogEntity)
+    Fields: id, senderId, receiverId, content, timestamp, isRead
+  
+  - ChatRepository (abstract)
+    Methods: sendMessage(), getMessages(), deleteMessage(), markAsRead()
+  
+  - UseCases:
+    • SendMessageUseCase
+    • GetMessagesUseCase
+    • DeleteMessageUseCase
+    • MarkAsReadUseCase
+
+Data:
+  - MessageModel (extends MessageEntity)
+  - RemoteChatDataSource (Firestore)
+  - LocalChatDataSource (SQLite for caching)
+  - ChatRepositoryImpl
+
+BLoC:
+  - Events: SendMessage, FetchMessages, DeleteMessage, MarkAsRead, RefreshChat
+  - States: ChatInitial, ChatLoading, ChatLoaded, ChatEmpty, ChatError, MessageSent, MessageDeleted
+  - ChatBloc (handle real-time updates with Firestore snapshots)
+
+Presentation:
+  - ChatScreen (StatelessWidget)
+  - BlocBuilder for message list
+  - BlocListener for message sent confirmation
+  - Widgets: MessageBubbleWidget, InputMessageWidget, EmptyChatWidget
+
+KEY DIFFERENCE FROM RECENTS:
+  - Real-time updates: Use Firestore snapshots in data source
+  - Stream handling: Convert Firestore stream to BLoC events
+  - Input field: Validation before sending (non-empty check)
+  - UI: Message bubbles (sent vs received styling)
+
+================================================================================
+STEP 4: REFACTOR VIDEO CALLS (2-3 hours)
+================================================================================
+
+FOLLOW PATTERN FROM RECENTS, designed for Stream.io:
+
+Domain:
+  - VideoCallEntity
+    Fields: callId, initiatorId, initiatorName, participants[], status, startTime, endTime
+  
+  - VideoCallRepository (abstract)
+    Methods: initiateCall(), joinCall(), endCall(), updateStatus(), getParticipants()
+  
+  - UseCases:
+    • InitiateVideoCallUseCase
+    • JoinVideoCallUseCase
+    • EndVideoCallUseCase
+    • UpdateVideoStatusUseCase
+
+Data:
+  - VideoCallModel (extends VideoCallEntity)
+  - RemoteVideoCallDataSource (Stream.io)
+    Extract logic from StreamManager here
+  - VideoCallRepositoryImpl
+
+BLoC:
+  - Events: InitiateCall, JoinCall, EndCall, UpdateStatus, HandleRemoteEvent
+  - States: CallInitiating, CallRinging, CallActive, CallEnded, CallError
+  - VideoBLoC
+    Subscribe to Stream.io listeners
+    Convert to BLoC events
+
+Presentation:
+  - VideoCallScreen (StatelessWidget, refactored from video_calls.dart)
+  - BlocBuilder for video preview
+  - BlocBuilder for participant grid
+  - Widgets: VideoPreviewWidget, ParticipantGridWidget, CallControlsWidget
+
+STREAM.IO INTEGRATION:
+  - Remove StreamManager singleton
+  - Create RemoteVideoCallDataSource
+  - Move all Stream.io client setup to data source
+  - BLoC subscribes to Stream events
+  - Stream events → BLoC events → state changes → UI updates
+
+CURRENT ISSUES TO FIX:
+  - Hardcoded URL: http://192.168.0.106:3000
+  - Initialization logic in UI (move to BLoC)
+  - Timeout handling in presentation (move to data layer)
+
+================================================================================
+STEP 5: REFACTOR AUDIO CALLS (1-2 hours)
+================================================================================
+
+FOLLOW PATTERN FROM RECENTS, with Stream.io + FCM:
+
+Domain:
+  - AudioCallEntity
+    Fields: callId, initiatorId, initiatorName, participants[], status, startTime, endTime, isMuted
+  
+  - AudioCallRepository (abstract)
+    Methods: initiateCall(), joinCall(), endCall(), toggleMute(), sendNotification()
+  
+  - UseCases:
+    • InitiateAudioCallUseCase
+    • JoinAudioCallUseCase
+    • EndAudioCallUseCase
+    • ToggleMuteUseCase
+    • SendCallNotificationUseCase
+
+Data:
+  - AudioCallModel (extends AudioCallEntity)
+  - RemoteAudioCallDataSource (Stream.io)
+    Extract logic from AudioManager here
+  - PushNotificationDataSource (Firebase Cloud Messaging)
+  - AudioCallRepositoryImpl
+
+BLoC:
+  - Events: InitiateAudioCall, JoinAudioCall, EndAudioCall, ToggleMute, SendNotification
+  - States: AudioInitiating, AudioRinging, AudioActive, AudioEnded, AudioError
+  - AudioBLoC
+
+Presentation:
+  - AudioCallScreen (StatelessWidget, refactored from audio_call_screen.dart)
+  - BlocBuilder for participant list
+  - BlocBuilder for mute button
+  - Widgets: ParticipantListWidget, AudioControlsWidget
+
+FCM INTEGRATION:
+  - CreateSendCallNotificationUseCase
+  - DataSource wraps FCM HTTP calls
+  - Returns Either<Failure, bool>
+  - No direct HTTP calls in UI
+
+CURRENT ISSUES TO FIX:
+  - Hardcoded URL: http://192.168.0.106:3000
+  - Extract AudioManager logic to data source
+  - FCM calls scattered (consolidate in data source)
+
+================================================================================
+STEP 6: INTEGRATION & WIRING (1 hour)
+================================================================================
+
+6.1 Navigation
+  Ensure screens wrapped with BlocProvider when navigated:
+  
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => BlocProvider(
+        create: (_) => getIt<ChatBloc>(),
+        child: ChatScreen(userId: userId),
+      ),
+    ),
+  );
+
+6.2 Global Error Handling
+  - All BLoCs emit consistent error states
+  - AppBlocObserver logs errors to console
+  - UI shows error message + retry button
+
+6.3 Dependency Flow
+  Verify all dependencies flow through GetIt:
+  
+  Screen → BLoC (from GetIt)
+    ↓
+  UseCase (from GetIt)
+    ↓
+  Repository (from GetIt)
+    ↓
+  DataSource (from GetIt)
+
+================================================================================
+STEP 7: TESTING & VALIDATION (2-3 hours)
+================================================================================
+
+7.1 Unit Tests (each feature)
+  Files: test/features/[feature]/[feature]_bloc_test.dart
+  
+  Test happy path:
+  - FetchRecentsEvent → RecentsLoaded
+  - SendMessageEvent → MessageSent
+  - InitiateCallEvent → CallActive
+  
+  Test error path:
+  - Network failure → Error state
+  - Invalid input → Validation failure
+  - Server error → ServerFailure
+
+7.2 Widget Tests
+  Files: test/features/[feature]/screens/[feature]_screen_test.dart
+  
+  Test UI rendering:
+  - Loading state → CircularProgressIndicator
+  - Loaded state → List/Grid/Form
+  - Empty state → EmptyWidget
+  - Error state → ErrorWidget + retry button
+
+7.3 Integration Tests
+  Files: integration_test/app_test.dart
+  
+  Test full user flow:
+  - Open Recents → BLoC fetches → UI shows list
+  - Send message → BLoC emits MessageSent → snackbar shows
+  - End call → BLoC emits CallEnded → navigate back
+
+================================================================================
+SUMMARY: FILES TO CREATE
+================================================================================
+
+FOUNDATION (6 files):
+  ✓ lib/Core/Utils/failures.dart
+  ✓ lib/Core/Utils/usecase_base.dart
+  ✓ lib/Core/Presentation/bloc/app_bloc_observer.dart
+  ✓ lib/Core/Domain/Repositories/auth_repository.dart
+  ✓ lib/Core/Domain/Repositories/call_repository.dart
+  ✓ lib/Core/Domain/Repositories/video_call_repository.dart
+  ✓ lib/Core/Domain/Repositories/audio_call_repository.dart
+  ✓ lib/Core/service_locator.dart
+
+RECENTS FEATURE (12 files):
+  ✓ Domain/Entities/call_log_entity.dart
+  ✓ Domain/Repositories/recents_repository.dart
+  ✓ Domain/UseCases/get_call_logs_usecase.dart
+  ✓ Domain/UseCases/delete_call_log_usecase.dart
+  ✓ Domain/UseCases/clear_all_logs_usecase.dart
+  ✓ Data/Models/call_log_model.dart
+  ✓ Data/DataSources/remote_recents_data_source.dart
+  ✓ Data/DataSources/local_recents_data_source.dart
+  ✓ Data/Repositories/recents_repository_impl.dart
+  ✓ Presentation/BLoC/recents_event.dart
+  ✓ Presentation/BLoC/recents_state.dart
+  ✓ Presentation/BLoC/recents_bloc.dart
+  ✓ Presentation/Widgets/call_log_item_widget.dart
+  ✓ Presentation/Widgets/empty_recents_widget.dart
+  ✓ Presentation/Widgets/error_recents_widget.dart
+  ✓ Presentation/Screens/recents_screen.dart (refactored)
+  ✓ Tests: recents_bloc_test.dart
+
+CHAT FEATURE (12 files): Same structure as Recents
+VIDEOCALLS FEATURE (12 files): Same structure as Recents + Stream.io
+AUDIOCALLS FEATURE (12 files): Same structure as Recents + Stream.io + FCM
+
+TOTAL: ~62 files, ~10,000 lines of clean code
+
+================================================================================
+KEY PRINCIPLES THROUGHOUT
+================================================================================
+
+SINGLE RESPONSIBILITY
+  ✓ Entity = represents domain concept
+  ✓ Repository = abstracts data access
+  ✓ UseCase = one business operation
+  ✓ BLoC = manages state
+  ✓ Screen = renders UI only
+
+DEPENDENCY INVERSION
+  ✓ Domain depends on abstractions
+  ✓ Data implements abstractions
+  ✓ GetIt provides implementations at runtime
+
+TESTABILITY
+  ✓ Mock repositories in unit tests
+  ✓ No Firebase imports in domain layer
+  ✓ BLoC tests don't touch real data
+  ✓ Verify state transitions only
+
+MAINTAINABILITY
+  ✓ Same structure across all features
+  ✓ New feature = copy Recents pattern
+  ✓ Change Firebase → change DataSource only
+  ✓ Refactoring isolated to specific layer
+
+SCALABILITY
+  ✓ Add 5th screen? Copy Recents pattern
+  ✓ Add caching? Add LocalDataSource
+  ✓ Add REST API? Add RestDataSource
+  ✓ No changes to BLoC or UI needed
+
+================================================================================
+ESTIMATED TIMELINE
+================================================================================
+
+Phase 1: Foundation Setup        1-2 hours
+Phase 2: Recents (template)     2-3 hours
+Phase 3: Chat Screen            1-2 hours
+Phase 4: Video Calls            2-3 hours
+Phase 5: Audio Calls            1-2 hours
+Phase 6: Integration            1 hour
+Phase 7: Testing                2-3 hours
+─────────────────────────────────────────
+TOTAL:                          10-15 hours
+
+================================================================================
+NEXT: DO NOT MODIFY YET
+================================================================================
+
+This is a PLANNING document only. No code changes have been made.
+
+When ready to implement:
+  1. Review this guide completely
+  2. Ask questions if anything is unclear
+  3. Start with Step 1 (Foundation)
+  4. Build Recents as template (Step 2)
+  5. Apply pattern to other features (Steps 3-5)
+  6. Integrate everything (Step 6)
+  7. Test thoroughly (Step 7)
+
+Each step builds on the previous. Do not skip or reorder.
+
+================================================================================
+END OF GUIDE
+================================================================================

@@ -1,9 +1,5 @@
-import 'package:chat_app/Core/Config/stream_config.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_messaging/firebase_messaging.dart' show FirebaseMessaging;
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 // import 'stream_config.dart';
   class FirebaseAuthService {
  

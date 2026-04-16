@@ -4,15 +4,18 @@ import 'package:chat_app/Core/Network/call_service.dart';
 import 'package:chat_app/Core/Network/local_notification_services.dart';
 import 'package:chat_app/Core/Network/push_notifications_service.dart';
 import 'package:chat_app/Core/Network/socket_service.dart';
+import 'package:chat_app/Core/service_locator.dart';
 import 'package:chat_app/Features/Auth/presentation/register/create_account_page.dart';
 import 'package:chat_app/Features/Users/users_screen.dart';
+import 'package:chat_app/app_bloc_observer.dart';
 import 'package:chat_app/firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-
+import 'Core/service_locator.dart';
 void main() async{
    WidgetsFlutterBinding.ensureInitialized();
   await  Firebase.initializeApp(
@@ -33,6 +36,8 @@ void main() async{
 });
  // SocketService.connect(myUserId: FirebaseAuth.instance.currentUser!.uid);//
   await dotenv.load(fileName: ".env");
+  Bloc.observer=AppBlocObserver();
+  await init();
   runApp(const MyApp());
 }
 
@@ -70,7 +75,8 @@ class _MyAppState extends State<MyApp> {
       theme: ThemeData(
         primarySwatch: Colors.blue,useMaterial3: true
       ),
-      home:  StreamBuilder<User?>(
+      home: 
+       StreamBuilder<User?>(
         stream:FirebaseAuth.instance.authStateChanges() ,
         builder: (context,snapshot){
           if(snapshot.hasData){
