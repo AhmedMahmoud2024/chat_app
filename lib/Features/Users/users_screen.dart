@@ -1,5 +1,6 @@
 import 'package:chat_app/Core/Network/story_service.dart';
-import 'package:chat_app/Features/Chat/chat_screen.dart';
+//import 'package:chat_app/Features/Chat/chat_screen.dart';
+import 'package:chat_app/Features/Chat/presentation/screens/chat_screen_clean.dart';
 import 'package:chat_app/Features/Users/data/models/story_model.dart';
 import 'package:chat_app/Features/Users/widgets/build_add_button.dart';
 import 'package:chat_app/Features/Users/widgets/build_story_circle.dart';
@@ -19,6 +20,7 @@ class UsersScreen extends StatefulWidget {
 class _UsersScreenState extends State<UsersScreen> {
   final StoryController controller=StoryController();
   bool _isUploading=false;
+  
   @override
   Widget build(BuildContext context) {
    final currentUserId=FirebaseAuth.instance.currentUser!.uid;
@@ -68,12 +70,27 @@ class _UsersScreenState extends State<UsersScreen> {
                     final receiverId = snapshot.data?.docs[index].id;
                       final userName = userData['name'].toString();
                       final userEmail = userData['email'].toString();
+                    //  final String myId=FirebaseAuth.instance.currentUser!.uid;
+                    //  List<String> ids=[myId,?receiverId];
+                  //    ids.sort();
+                  //    String chatRoomId = ids.join("");                
+                
                    return ListTile(
                     onTap: () {
-                      Navigator.push(context,MaterialPageRoute(builder: (context)=>ChatScreen(
-                       receiverId:receiverId ?? '' ,
-                        receiverName: userName,
-                      )));
+                    final userData =snapshot.data?.docs[index].data() as Map<String,dynamic>;
+                      final userName = userData['name'].toString();
+                      final String? chatRoomId =receiverId;
+                      Navigator.push(context,MaterialPageRoute(builder: (context)=>
+                   ChatScreenClean(
+                    chatRoomId: chatRoomId ?? '',
+                     receiverId: receiverId ?? '',
+                     receiverName: userName
+                     )
+                    //  ChatScreen(
+                    //    receiverId:receiverId ?? '' ,
+                    //    receiverName: userName,
+                    //  )
+                      ));
                     },
                     leading: CircleAvatar(
                       child:  Icon(Icons.person),
