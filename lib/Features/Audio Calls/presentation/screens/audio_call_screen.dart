@@ -1,12 +1,10 @@
 import 'dart:async';
 import 'dart:developer';
-import 'package:chat_app/Core/Network/call_service.dart';
-import 'package:chat_app/Core/Network/firebase_auth_service.dart';
 import 'package:chat_app/Core/Network/socket_service.dart';
-import 'package:chat_app/Features/Audio%20Calls/widgets/audio_only_call_content.dart';
-import 'package:chat_app/Features/Audio%20Calls/widgets/initialization_error_widget.dart';
-import 'package:chat_app/Features/Audio%20Calls/widgets/is_initializing_widget.dart';
-import 'package:chat_app/Features/Audio_Calls/managers/audio_manager.dart';
+import 'package:chat_app/Features/Audio%20Calls/presentation/widgets/audio_only_call_content.dart';
+import 'package:chat_app/Features/Audio%20Calls/presentation/widgets/initialization_error_widget.dart';
+import 'package:chat_app/Features/Audio%20Calls/presentation/widgets/is_initializing_widget.dart';
+import 'package:chat_app/Features/Audio%20Calls/data/managers/audio_manager.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:stream_video_flutter/stream_video_flutter.dart';
