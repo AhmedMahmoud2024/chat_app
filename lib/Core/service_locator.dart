@@ -13,6 +13,15 @@ import 'package:chat_app/Features/recents%20Screen/domain/useCases/filter_call_l
 import 'package:chat_app/Features/recents%20Screen/domain/useCases/get_call_logs_usecase.dart';
 import 'package:chat_app/Features/recents%20Screen/presentation/bloc/recents_bloc.dart';
 import 'package:chat_app/Features/recents%20Screen/repositories/recents_repository.dart';
+import 'package:chat_app/Features/Video%20Calls/data/dataSources/stream_manager_data_source.dart';
+import 'package:chat_app/Features/Video%20Calls/data/repositories/video_call_repository_impl.dart';
+import 'package:chat_app/Features/Video%20Calls/domain/repository/video_call_repository.dart';
+import 'package:chat_app/Features/Video%20Calls/domain/usecases/initialize_call_usecase.dart';
+import 'package:chat_app/Features/Video%20Calls/domain/usecases/create_and_join_call_usecase.dart';
+import 'package:chat_app/Features/Video%20Calls/domain/usecases/toggle_camera_usecase.dart';
+import 'package:chat_app/Features/Video%20Calls/domain/usecases/toggle_mic_usecase.dart';
+import 'package:chat_app/Features/Video%20Calls/domain/usecases/leave_call_usecase.dart';
+import 'package:chat_app/Features/Video%20Calls/presentation/bloc/video_call_bloc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get_it/get_it.dart';
@@ -92,4 +101,47 @@ sl.registerLazySingleton<ChatRepository>(
     getMessagesUseCase:sl(),
     sendMessageUseCase:sl(),
   ));
+
+  /// Video Calls Feature
+  // Data Sources
+  sl.registerLazySingleton<StreamManagerDataSource>(
+    () => StreamManagerDataSourceImpl(),
+  );
+
+  // Repositories
+  sl.registerLazySingleton<VideoCallRepository>(
+    () => VideoCallRepositoryImpl(dataSource: sl()),
+  );
+
+  // Use Cases
+  sl.registerLazySingleton(
+    () => InitializeCallUsecase(repository: sl()),
+  );
+
+  sl.registerLazySingleton(
+    () => CreateAndJoinCallUsecase(repository: sl()),
+  );
+
+  sl.registerLazySingleton(
+    () => ToggleCameraUsecase(repository: sl()),
+  );
+
+  sl.registerLazySingleton(
+    () => ToggleMicUsecase(repository: sl()),
+  );
+
+  sl.registerLazySingleton(
+    () => LeaveCallUsecase(repository: sl()),
+  );
+
+  // BLoC
+  sl.registerFactory(
+    () => VideoCallBloc(
+      initializeCallUsecase: sl(),
+      createAndJoinCallUsecase: sl(),
+      toggleCameraUsecase: sl(),
+      toggleMicUsecase: sl(),
+      leaveCallUsecase: sl(),
+    ),
+  );
 }

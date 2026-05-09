@@ -1,9 +1,8 @@
-import 'package:chat_app/Features/Audio%20Calls/screens/audio_call_screen.dart';
 import 'package:flutter/material.dart';
 
 class InitializationErrorWidget extends StatelessWidget {
     final String? initializationError;
-    InitializationErrorWidget(this.initializationError, {super.key});
+  const InitializationErrorWidget(this.initializationError, {super.key});
 
   @override
   Widget build(BuildContext context) {

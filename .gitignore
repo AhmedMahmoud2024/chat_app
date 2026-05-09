@@ -11,7 +11,8 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
-
+# Ignore secrets files
+lib/core/constants/secrets.dart
 # IntelliJ related
 *.iml
 *.ipr
