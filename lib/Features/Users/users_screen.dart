@@ -1,13 +1,17 @@
 import 'package:chat_app/Core/Network/story_service.dart';
+import 'package:chat_app/Core/service_locator.dart';
 //import 'package:chat_app/Features/Chat/chat_screen.dart';
 import 'package:chat_app/Features/Chat/presentation/screens/chat_screen_clean.dart';
 import 'package:chat_app/Features/Users/data/models/story_model.dart';
 import 'package:chat_app/Features/Users/widgets/build_add_button.dart';
 import 'package:chat_app/Features/Users/widgets/build_story_circle.dart';
 import 'package:chat_app/Features/Users/widgets/story_content_view.dart';
+import 'package:chat_app/Features/chatbot/presentation/bloc/ai_chatbot_bloc.dart';
+import 'package:chat_app/Features/chatbot/presentation/screens/ai_chatbot_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:story_view/story_view.dart';
 
 class UsersScreen extends StatefulWidget {
@@ -28,6 +32,24 @@ class _UsersScreenState extends State<UsersScreen> {
     return  Scaffold(
       appBar:AppBar(
         title: Text('Users'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.chat_bubble),
+            onPressed: () {
+            Navigator.push(
+              context, 
+              MaterialPageRoute(
+                builder: (context)=>
+                BlocProvider(
+                  create: (context) => sl<AiChatbotBloc>(),
+                  child: AiChatbotScreen(),
+                )
+              
+               
+             )
+            );
+          }, )
+        ],
         leading: IconButton(onPressed: () async{
           await FirebaseAuth.instance.signOut();
         }, icon: Icon(Icons.logout)),

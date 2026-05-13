@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 class VideoService {
   static const int maxRetries = 3;
   static const Duration baseDelay = Duration(milliseconds: 500);
-  static const String tokenEndpoint = 'http://192.168.0.105:3000/get-stream-token';
+  static const String tokenEndpoint = 'http://192.168.0.106:3000/get-stream-token';
   static const int tokenFetchTimeout = 10;
 
   static Future<String?> getStreamToken(String userId) async {

@@ -4,6 +4,8 @@ import 'package:chat_app/Features/Chat/domain/repositories/chat_repository.dart'
 import 'package:chat_app/Features/Chat/domain/usecases/get_messages_use_case.dart';
 import 'package:chat_app/Features/Chat/domain/usecases/send_message_use_case.dart';
 import 'package:chat_app/Features/Chat/presentation/bloc/chat_bloc.dart';
+import 'package:chat_app/Features/chatbot/data/datasource/gemini_remote_data_source.dart';
+import 'package:chat_app/Features/chatbot/presentation/bloc/ai_chatbot_bloc.dart';
 import 'package:chat_app/Features/recents%20Screen/data/dataSources/remote_recents_data_source.dart';
 import 'package:chat_app/Features/recents%20Screen/data/repositories/recents_repository_impl.dart';
 import 'package:chat_app/Features/recents%20Screen/domain/services/call_log_filtering_service.dart';
@@ -143,5 +145,13 @@ sl.registerLazySingleton<ChatRepository>(
       toggleMicUsecase: sl(),
       leaveCallUsecase: sl(),
     ),
+  );
+
+  // AI Chatbot Feature
+  sl.registerLazySingleton(
+    () => GeminiRemoteDataSource(),
+  );
+  sl.registerFactory(
+    () => AiChatbotBloc(sl()),
   );
 }

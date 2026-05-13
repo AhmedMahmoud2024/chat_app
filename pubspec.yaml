@@ -58,6 +58,7 @@ dependencies:
   get_it: ^9.2.1
   dartz: ^0.10.1
   equatable: ^2.0.8
+  google_generative_ai: ^0.4.7
 
 dev_dependencies:
   flutter_test:
