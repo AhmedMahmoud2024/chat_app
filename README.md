@@ -1,6 +1,6 @@
 # chat_app
 
-A Simple Chat app with Firebase .
+A Full Stack Chat app .
 
 ## Features:
 1-Authentication :registerations & login Using Firebase
@@ -11,5 +11,5 @@ A Simple Chat app with Firebase .
 6-using node js to establish our server via web socket to be good
 7-conncting with mongodb 
 8-stream.io sdk integration for best audio & video stream calls instead of Agora
-## On Working Features:
+
 
